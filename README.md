@@ -11,14 +11,9 @@ File](https://img.shields.io/badge/Architecture-Single%20File-orange)
 
 ## 📸 Screenshots
 
-### Main Menu
-
-![Main Menu](screenshots/menu.png)
-
-### Gameplay
-
-![Gameplay](screenshots/gameplay.png)
-
+|Main Menu | Gameplay |
+| :--- | :--- |
+|![Main Menu Screenshot](screenshots/menu.png) | ![Gameplay Screenshot](screenshots/gameplay.png)|
 
 ------------------------------------------------------------------------
 
@@ -27,14 +22,18 @@ File](https://img.shields.io/badge/Architecture-Single%20File-orange)
 **Cosmic Oblivion** is a fast-paced arcade-style space shooter built
 entirely in C using the raylib graphics library.
 
-The game features: - A state-driven UI system - Three selectable
-spaceships - Procedural meteor generation - Particle-based visual
-effects - Score & persistent highscore system - Smooth animations and
+**The game features:** 
+- A state-driven UI system - Three selectable
+spaceships 
+- Procedural meteor generation - Particle-based visual
+effects 
+- Score & persistent highscore system 
+- Smooth animations and
 screen effects
 
-Gameplay loop:
+**Gameplay loop:**
 
-Spawn → Dodge → Shoot → Survive → Score → Game Over → Retry
+> Spawn → Dodge → Shoot → Survive → Score → Game Over → Retry
 
 ------------------------------------------------------------------------
 
@@ -55,8 +54,11 @@ Spawn → Dodge → Shoot → Survive → Score → Game Over → Retry
 -   **Destroyer** --- Balanced stats
 -   **Titan** --- Slow but heavy damage
 
-Each ship includes: - Unique visual design - Engine glow effects -
-Custom fire rate - Distinct stats
+**Each ship includes:** 
+- Unique visual design 
+- Engine glow effects 
+- Custom fire rate 
+- Distinct stats
 
 ### ☄️ Meteors
 
@@ -185,8 +187,8 @@ gcc main.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 -   No external game engine
 -   Minimal dependencies
 -   Clean state-based architecture
--   Structured development workflow using Vibecode
--   Developed with Google Antigravity agentic editor
+-   Structured development workflow using **Vibecode**
+-   Developed with **Google Antigravity** agentic editor
 
 ------------------------------------------------------------------------
 
