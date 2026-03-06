@@ -1,0 +1,189 @@
+#include "game.h"
+#include "constants.h"
+#include "helpers.h"
+#include "stars.h"
+#include "particles.h"
+#include "meteor.h"
+#include "ship.h"
+#include "button.h"
+#include <math.h>
+
+extern GameState G;
+
+void InitPlayer(void){
+    Player*pl=&G.player;
+    pl->pos=(Vector2){SW/2.0f,SH-80.0f};
+    pl->vel=(Vector2){0,0};
+    pl->alive=true;
+    pl->shieldTimer=0; pl->damageFlash=0;
+    pl->type=G.selectedShip;
+    if(pl->type==SHIP_INTERCEPTOR){pl->speed=420;pl->fireRate=0.12f;pl->maxHp=3;}
+    else if(pl->type==SHIP_DESTROYER){pl->speed=320;pl->fireRate=0.2f;pl->maxHp=5;}
+    else{pl->speed=220;pl->fireRate=0.28f;pl->maxHp=8;}
+    pl->hp=pl->maxHp; pl->fireCooldown=0;
+}
+void InitGame(void){
+    for(int i=0;i<MAX_BULLETS;i++)G.bullets[i].active=false;
+    for(int i=0;i<MAX_METEORS;i++)G.meteors[i].active=false;
+    for(int i=0;i<MAX_PARTICLES;i++)G.particles[i].active=false;
+    G.meteorTimer=0; G.meteorRate=1.2f; G.meteorSpeedMul=1.0f;
+    G.scoreTimer=0; G.gameTime=0; G.score=0; G.meteorsDestroyed=0;
+    G.comboTimer=0; G.comboMultiplier=1.0f;
+    G.shakeTimer=0; G.shakeMag=0; G.slowMoTimer=0;
+    G.gameOver=false;
+    InitPlayer();
+}
+
+void UpdateGame(float dt){
+    if(G.slowMoTimer>0){G.slowMoTimer-=GetFrameTime();dt*=0.3f;}
+    Player*pl=&G.player;
+    G.gameTime+=dt;
+    G.meteorRate=Clampf(1.2f-G.gameTime*0.008f,0.3f,1.2f);
+    G.meteorSpeedMul=1.0f+G.gameTime*0.005f;
+    if(G.shakeTimer>0)G.shakeTimer-=dt;
+    if(pl->damageFlash>0)pl->damageFlash-=dt;
+    if(pl->shieldTimer>0)pl->shieldTimer-=dt;
+    if(G.comboTimer>0){G.comboTimer-=dt;if(G.comboTimer<=0)G.comboMultiplier=1.0f;}
+    if(pl->alive){
+        Vector2 dir={0};
+        if(IsKeyDown(KEY_W)||IsKeyDown(KEY_UP))dir.y-=1;
+        if(IsKeyDown(KEY_S)||IsKeyDown(KEY_DOWN))dir.y+=1;
+        if(IsKeyDown(KEY_A)||IsKeyDown(KEY_LEFT))dir.x-=1;
+        if(IsKeyDown(KEY_D)||IsKeyDown(KEY_RIGHT))dir.x+=1;
+        float len=sqrtf(dir.x*dir.x+dir.y*dir.y);
+        if(len>0){dir.x/=len;dir.y/=len; pl->vel.x+=(dir.x*pl->speed-pl->vel.x)*dt*8;pl->vel.y+=(dir.y*pl->speed-pl->vel.y)*dt*8;}
+        else{pl->vel.x*=1.0f-dt*6;pl->vel.y*=1.0f-dt*6;}
+        pl->pos.x+=pl->vel.x*dt; pl->pos.y+=pl->vel.y*dt;
+        pl->pos.x=Clampf(pl->pos.x,24,SW-24); pl->pos.y=Clampf(pl->pos.y,28,SH-28);
+        if(fabsf(pl->vel.x)>20||fabsf(pl->vel.y)>20){
+            Color ec=(pl->type==SHIP_INTERCEPTOR)?(Color){0,220,255,255}:(pl->type==SHIP_DESTROYER)?(Color){255,160,40,255}:(Color){255,50,20,255};
+            SpawnP((Vector2){pl->pos.x+Rf(-4,4),pl->pos.y+22},ec,1,40,2.5f);
+        }
+        pl->fireCooldown-=dt;
+        if(IsKeyDown(KEY_SPACE)&&pl->fireCooldown<=0){
+            pl->fireCooldown=pl->fireRate;
+            if(pl->type==SHIP_TITAN){
+                for(int d=-1;d<=1;d++){for(int i=0;i<MAX_BULLETS;i++){if(!G.bullets[i].active){G.bullets[i]=(Bullet){{pl->pos.x+d*10,pl->pos.y-26},600,true};break;}}}
+            }else if(pl->type==SHIP_DESTROYER){
+                for(int d=-1;d<=1;d+=2){for(int i=0;i<MAX_BULLETS;i++){if(!G.bullets[i].active){G.bullets[i]=(Bullet){{pl->pos.x+d*12,pl->pos.y-20},550,true};break;}}}
+            }else{
+                for(int i=0;i<MAX_BULLETS;i++){if(!G.bullets[i].active){G.bullets[i]=(Bullet){{pl->pos.x,pl->pos.y-28},650,true};break;}}
+            }
+            SpawnP((Vector2){pl->pos.x,pl->pos.y-28},(Color){200,230,255,255},3,60,2);
+        }
+    }
+    for(int i=0;i<MAX_BULLETS;i++){if(!G.bullets[i].active)continue;G.bullets[i].pos.y-=G.bullets[i].speed*dt;if(G.bullets[i].pos.y<-10)G.bullets[i].active=false;}
+    G.meteorTimer+=dt;
+    if(G.meteorTimer>=G.meteorRate){G.meteorTimer-=G.meteorRate;SpawnMeteor(&G);}
+    for(int i=0;i<MAX_METEORS;i++){if(!G.meteors[i].active)continue;Meteor*m=&G.meteors[i];m->pos.x+=m->vel.x*dt;m->pos.y+=m->vel.y*dt;m->rotation+=m->rotSpeed*dt;if(m->pos.y>SH+m->radius+30)m->active=false;}
+    for(int bi=0;bi<MAX_BULLETS;bi++){
+        if(!G.bullets[bi].active)continue;
+        for(int mi=0;mi<MAX_METEORS;mi++){
+            if(!G.meteors[mi].active)continue;
+            float dx=G.bullets[bi].pos.x-G.meteors[mi].pos.x,dy=G.bullets[bi].pos.y-G.meteors[mi].pos.y;
+            if(dx*dx+dy*dy<G.meteors[mi].radius*G.meteors[mi].radius){
+                G.bullets[bi].active=false;
+                G.meteors[mi].hp--;
+                SpawnP(G.bullets[bi].pos,(Color){255,200,100,255},6,120,2);
+                if(G.meteors[mi].hp<=0){
+                    G.meteors[mi].active=false;
+                    SpawnP(G.meteors[mi].pos,G.meteors[mi].color,18,200,3.5f);
+                    SpawnP(G.meteors[mi].pos,(Color){255,220,100,255},8,160,2);
+                    int bonus=(G.meteors[mi].size==METEOR_LARGE)?30:(G.meteors[mi].size==METEOR_MEDIUM)?20:10;
+                    G.score+=(int)(bonus*G.comboMultiplier);
+                    G.comboTimer=2.0f; G.comboMultiplier=Clampf(G.comboMultiplier+0.25f,1,5);
+                    G.meteorsDestroyed++;
+                    if(G.meteors[mi].size==METEOR_LARGE){SpawnMeteorAt(G.meteors[mi].pos,METEOR_MEDIUM);SpawnMeteorAt(G.meteors[mi].pos,METEOR_MEDIUM);}
+                    else if(G.meteors[mi].size==METEOR_MEDIUM){SpawnMeteorAt(G.meteors[mi].pos,METEOR_SMALL);SpawnMeteorAt(G.meteors[mi].pos,METEOR_SMALL);}
+                    if(G.meteors[mi].size>=METEOR_LARGE){G.shakeTimer=0.25f;G.shakeMag=6;}
+                }
+                break;
+            }
+        }
+    }
+    if(pl->alive&&pl->shieldTimer<=0){
+        for(int mi=0;mi<MAX_METEORS;mi++){
+            if(!G.meteors[mi].active)continue;
+            float dx=pl->pos.x-G.meteors[mi].pos.x,dy=pl->pos.y-G.meteors[mi].pos.y;
+            if(dx*dx+dy*dy<(G.meteors[mi].radius+18)*(G.meteors[mi].radius+18)){
+                G.meteors[mi].active=false;
+                pl->hp--;pl->shieldTimer=1.0f;pl->damageFlash=0.3f;
+                G.shakeTimer=0.3f;G.shakeMag=8;
+                SpawnP(pl->pos,(Color){255,255,255,255},12,150,3);
+                if(pl->hp<=0){
+                    pl->alive=false;
+                    SpawnP(pl->pos,WHITE,40,300,4);
+                    SpawnP(pl->pos,(Color){255,100,30,255},30,250,3.5f);
+                    SpawnP(pl->pos,SKYBLUE,20,200,3);
+                    G.slowMoTimer=0.6f;G.shakeTimer=0.5f;G.shakeMag=12;
+                    if(G.score>G.highscore){G.highscore=G.score;SaveHS(G.highscore);}
+                    G.gameOver=true;G.screen=SCREEN_GAME_OVER;
+                    G.goBtns[0]=MkBtn(SW/2-100,480,200,48,"PLAY AGAIN");
+                    G.goBtns[1]=MkBtn(SW/2-100,540,200,48,"MAIN MENU");
+                    G.goSel=0;
+                }
+                break;
+            }
+        }
+    }
+    if(pl->alive){G.scoreTimer+=dt;while(G.scoreTimer>=1){G.scoreTimer-=1;G.score++;}}
+    UpdateParticles(dt);
+}
+
+void DrawHPBar(Player p){
+    int bw=120,bh=10,x=10,y=SH-30;
+    DrawRectangle(x,y,bw,bh,(Color){40,40,40,200});
+    float frac=(float)p.hp/p.maxHp;
+    Color hc=frac>0.5f?(Color){50,200,80,255}:frac>0.25f?(Color){255,200,40,255}:(Color){255,50,40,255};
+    DrawRectangle(x,y,(int)(bw*frac),bh,hc);
+    DrawRectangleLinesEx((Rectangle){x,y,bw,bh},1,WHITE);
+    DrawText(TextFormat("HP %d/%d",p.hp,p.maxHp),x+bw+8,y-2,16,WHITE);
+}
+
+void DrawGameplay(void){
+    Vector2 off=ShakeOff();
+    BeginDrawing();
+    ClearBackground((Color){4,4,16,255});
+    DrawNebula();
+    Camera2D cam={0}; cam.offset=off; cam.target=(Vector2){0,0}; cam.rotation=0; cam.zoom=1;
+    BeginMode2D(cam);
+    DrawStars();
+    DrawParticles();
+    for(int i=0;i<MAX_METEORS;i++){if(G.meteors[i].active)DrawMeteor(G.meteors[i]);}
+    for(int i=0;i<MAX_BULLETS;i++){
+        if(!G.bullets[i].active)continue;
+        Vector2 bp=G.bullets[i].pos;
+        DrawRectangle((int)bp.x-2,(int)bp.y-7,4,14,(Color){180,230,255,255});
+        DrawRectangle((int)bp.x-1,(int)bp.y-5,2,10,WHITE);
+        DrawCircleV(bp,5,CAlpha((Color){150,200,255,255},60));
+    }
+    if(G.player.alive){
+        if(G.player.damageFlash>0){DrawCircleV(G.player.pos,30,CAlpha(RED,(unsigned char)(G.player.damageFlash/0.3f*100)));}
+        DrawShipShape(G.player.pos,G.player.type,G.gameTime*4,true);
+        if(G.player.shieldTimer>0){
+            unsigned char sa=(unsigned char)(G.player.shieldTimer/1.0f*120);
+            DrawCircleLines((int)G.player.pos.x,(int)G.player.pos.y,28,CAlpha(SKYBLUE,sa));
+            DrawCircleLines((int)G.player.pos.x,(int)G.player.pos.y,30,CAlpha(WHITE,(unsigned char)(sa/2)));
+        }
+    }
+    EndMode2D();
+    DrawText(TextFormat("SCORE: %d",G.score),10,10,26,WHITE);
+    DrawText(TextFormat("HIGH: %d",G.highscore),10,40,20,LIGHTGRAY);
+    if(G.comboMultiplier>1.0f){
+        const char*ct=TextFormat("COMBO x%.1f",G.comboMultiplier);
+        DrawText(ct,SW-MeasureText(ct,24)-14,10,24,GOLD);
+    }
+    DrawHPBar(G.player);
+    EndDrawing();
+}
+
+void DrawTitle(float t){
+    const char*title="COSMIC OBLIVION";
+    int tw=MeasureText(title,52);
+    float y=100+sinf(t*1.5f)*8;
+    float hue=fmodf(t*30,360);
+    Color c1=ColorFromHSV(hue,0.7f,1.0f), c2=ColorFromHSV(hue+40,0.6f,1.0f);
+    DrawText(title,(int)(SW/2-tw/2+2),(int)(y+2),52,CAlpha(c1,40));
+    DrawText(title,(int)(SW/2-tw/2-1),(int)(y-1),52,CAlpha(c2,60));
+    DrawText(title,(int)(SW/2-tw/2),(int)(y),52,WHITE);
+}

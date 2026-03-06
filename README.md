@@ -4,12 +4,12 @@
 
 ![C](https://img.shields.io/badge/Language-C-blue)
 ![raylib](https://img.shields.io/badge/Graphics-raylib-green)
-![Linux](https://img.shields.io/badge/Platform-Linux-lightgrey) ![Single
-File](https://img.shields.io/badge/Architecture-Single%20File-orange)
+![Linux](https://img.shields.io/badge/Platform-Linux-lightgrey)
+![Modular](https://img.shields.io/badge/Architecture-Modular-orange)
 
 ------------------------------------------------------------------------
 
-## 📸 Screenshots
+## Screenshots
 
 |Main Menu | Gameplay |
 | :--- | :--- |
@@ -17,19 +17,18 @@ File](https://img.shields.io/badge/Architecture-Single%20File-orange)
 
 ------------------------------------------------------------------------
 
-## 🚀 About The Game
+## About The Game
 
 **Cosmic Oblivion** is a fast-paced arcade-style space shooter built
 entirely in C using the raylib graphics library.
 
 **The game features:** 
-- A state-driven UI system - Three selectable
-spaceships 
-- Procedural meteor generation - Particle-based visual
-effects 
+- A state-driven UI system
+- Three selectable spaceships 
+- Procedural meteor generation 
+- Particle-based visual effects 
 - Score & persistent highscore system 
-- Smooth animations and
-screen effects
+- Smooth animations and screen effects
 
 **Gameplay loop:**
 
@@ -37,7 +36,7 @@ screen effects
 
 ------------------------------------------------------------------------
 
-## 🎮 Features
+## Features
 
 ### Gameplay
 
@@ -48,7 +47,7 @@ screen effects
 -   Combo multiplier
 -   Progressive difficulty scaling
 
-### 🚀 Spaceships
+### Spaceships
 
 -   **Interceptor** --- Fast, lightweight, rapid-fire
 -   **Destroyer** --- Balanced stats
@@ -60,7 +59,7 @@ screen effects
 - Custom fire rate 
 - Distinct stats
 
-### ☄️ Meteors
+### Meteors
 
 -   Small, Medium, Large types
 -   Procedural irregular shapes
@@ -68,7 +67,7 @@ screen effects
 -   Break into smaller fragments
 -   Difficulty scales over time
 
-### ✨ Visual Effects
+### Visual Effects
 
 -   Custom particle system
 -   Engine trails
@@ -77,7 +76,7 @@ screen effects
 -   Screen shake effects
 -   Animated parallax starfield background
 
-### 🖥 UI System
+### UI System
 
 -   Animated main menu
 -   Mouse & keyboard navigation
@@ -88,20 +87,28 @@ screen effects
 
 ------------------------------------------------------------------------
 
-## 📁 Project Structure
+## Project Structure
 
-Cosmic-Oblivion/
-
-├── main.c\
-├── highscore.txt\
-└── screenshots/
-
-This is a single-file C project using fixed-size arrays and no dynamic
-memory allocation.
+```
+cosmic-oblivion/
+├── main.c           # Entry point, game loop
+├── constants.h      # Constants, enums, type definitions
+├── helpers.h/c      # Utility functions
+├── stars.h/c       # Background starfield
+├── particles.h/c   # Particle effects
+├── button.h/c      # UI buttons
+├── ship.h/c        # Ship rendering
+├── meteor.h/c      # Meteor system
+├── game.h/c        # Core game logic
+├── ui.h/c          # Screen functions
+├── highscore.txt   # Persisted high score
+├── screenshots/    # Game screenshots
+└── AGENTS.md       # Developer documentation
+```
 
 ------------------------------------------------------------------------
 
-## 📦 Requirements
+## Requirements
 
 -   Linux (X11)
 -   GCC
@@ -111,7 +118,7 @@ Compatible with Windows and macOS if raylib is installed correctly.
 
 ------------------------------------------------------------------------
 
-## 🔧 Installing raylib
+## Installing raylib
 
 ### Arch Linux
 
@@ -131,24 +138,10 @@ Follow the official [raylib installation guide](https://github.com/raysan5/rayli
 
 ------------------------------------------------------------------------
 
-## 📥 Getting The Project
-
-### Clone via Git
-
-    git clone https://github.com/Hasib-4174/cosmic-oblivion.git
-    cd cosmic-oblivion
-
-### Download ZIP
-
-Download the repository ZIP from GitHub and extract it.
-
-------------------------------------------------------------------------
-
-## 🛠 Compile & Run
-
+## Compile & Run
 
 ```bash
-gcc main.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
+gcc main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 ./cosmic
 ```
 
@@ -160,9 +153,21 @@ gcc main.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 * `-lrt`: Realtime extensions library.
 * `-lX11`: X Window System support.
 
+### Debug Build
+
+```bash
+gcc -g -O0 main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic_debug
+```
+
+### Release Build
+
+```bash
+gcc -O2 -Wall -Wextra main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic_release
+```
+
 ------------------------------------------------------------------------
 
-## 🎮 Controls
+## Controls
 
 | Action | Key |
 | :--- | :--- |
@@ -173,7 +178,7 @@ gcc main.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 
 ------------------------------------------------------------------------
 
-## 🏆 Highscore System
+## Highscore System
 
 -   Stored in `highscore.txt`
 -   Auto-created if missing
@@ -181,18 +186,16 @@ gcc main.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 
 ------------------------------------------------------------------------
 
-## 🧠 Development Philosophy
+## Development Philosophy
 
 -   Built in pure C (C99 compatible)
 -   No external game engine
 -   Minimal dependencies
+-   Modular architecture (10 source files)
 -   Clean state-based architecture
--   Structured development workflow using **Vibecode**
--   Developed with **Google Antigravity** agentic editor
 
 ------------------------------------------------------------------------
 
-## 📜 License
+## License
 
 This project is open-source under the **MIT License**.
-
