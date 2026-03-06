@@ -1,5 +1,5 @@
-#include "helpers.h"
-#include "constants.h"
+#include "include/helpers.h"
+#include "include/constants.h"
 #include <stdio.h>
 
 extern GameState G;

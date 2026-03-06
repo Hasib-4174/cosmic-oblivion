@@ -91,19 +91,31 @@ entirely in C using the raylib graphics library.
 
 ```
 cosmic-oblivion/
-├── main.c           # Entry point, game loop
-├── constants.h      # Constants, enums, type definitions
-├── helpers.h/c      # Utility functions
-├── stars.h/c       # Background starfield
-├── particles.h/c   # Particle effects
-├── button.h/c      # UI buttons
-├── ship.h/c        # Ship rendering
-├── meteor.h/c      # Meteor system
-├── game.h/c        # Core game logic
-├── ui.h/c          # Screen functions
-├── highscore.txt   # Persisted high score
+├── src/
+│   ├── main.c       # Entry point, game loop
+│   ├── helpers.c    # Utility functions
+│   ├── stars.c      # Background starfield
+│   ├── particles.c  # Particle effects
+│   ├── button.c     # UI buttons
+│   ├── ship.c      # Ship rendering
+│   ├── meteor.c    # Meteor system
+│   ├── game.c      # Core game logic
+│   └── ui.c        # Screen functions
+├── include/
+│   ├── constants.h # Constants, enums, type definitions
+│   ├── helpers.h   # Helper function declarations
+│   ├── stars.h     # Starfield declarations
+│   ├── particles.h # Particle declarations
+│   ├── button.h    # Button declarations
+│   ├── ship.h      # Ship declarations
+│   ├── meteor.h    # Meteor declarations
+│   ├── game.h      # Game logic declarations
+│   └── ui.h        # UI declarations
+├── tests/           # Unit tests
 ├── screenshots/    # Game screenshots
-└── AGENTS.md       # Developer documentation
+├── Makefile        # Build automation
+├── AGENTS.md       # Developer documentation
+└── README.md       # This file
 ```
 
 ------------------------------------------------------------------------
@@ -140,8 +152,20 @@ Follow the official [raylib installation guide](https://github.com/raysan5/rayli
 
 ## Compile & Run
 
+### Using Makefile (recommended)
 ```bash
-gcc main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
+make           # Compile game
+make run       # Compile and run
+make debug     # Debug build
+make release   # Release build
+make lint      # Run cppcheck
+make test      # Run unit tests
+make clean     # Clean build artifacts
+```
+
+### Manual Compile
+```bash
+gcc src/*.c -I. -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 ./cosmic
 ```
 
@@ -152,18 +176,6 @@ gcc main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -l
 * `-ldl`: Dynamic linking loader library.
 * `-lrt`: Realtime extensions library.
 * `-lX11`: X Window System support.
-
-### Debug Build
-
-```bash
-gcc -g -O0 main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic_debug
-```
-
-### Release Build
-
-```bash
-gcc -O2 -Wall -Wextra main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic_release
-```
 
 ------------------------------------------------------------------------
 
@@ -185,6 +197,20 @@ gcc -O2 -Wall -Wextra main.c helpers.c stars.c particles.c button.c ship.c meteo
 -   Updated when a new record is achieved
 
 ------------------------------------------------------------------------
+
+## Testing
+
+### Unit Tests
+```bash
+make test      # Run unit tests (currently 15 tests)
+```
+
+Tests are in `tests/` directory and cover helper functions (Clampf, Rf, CAlpha, CLerp).
+
+### Manual Testing
+Run `./cosmic` and test: menu, ship select, gameplay, pause, game over.
+
+---
 
 ## Development Philosophy
 

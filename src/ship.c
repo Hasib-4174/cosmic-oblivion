@@ -1,5 +1,5 @@
-#include "ship.h"
-#include "helpers.h"
+#include "include/ship.h"
+#include "include/helpers.h"
 #include <math.h>
 
 void DrawShipShape(Vector2 p,ShipType t,float hover,bool engineOn){

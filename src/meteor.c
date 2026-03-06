@@ -1,5 +1,5 @@
-#include "meteor.h"
-#include "helpers.h"
+#include "include/meteor.h"
+#include "include/helpers.h"
 #include <math.h>
 
 extern GameState G;

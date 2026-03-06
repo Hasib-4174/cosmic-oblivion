@@ -1,11 +1,11 @@
-#include "game.h"
-#include "constants.h"
-#include "helpers.h"
-#include "stars.h"
-#include "particles.h"
-#include "meteor.h"
-#include "ship.h"
-#include "button.h"
+#include "include/game.h"
+#include "include/constants.h"
+#include "include/helpers.h"
+#include "include/stars.h"
+#include "include/particles.h"
+#include "include/meteor.h"
+#include "include/ship.h"
+#include "include/button.h"
 #include <math.h>
 
 extern GameState G;

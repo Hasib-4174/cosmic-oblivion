@@ -4,6 +4,7 @@ highscore.txt
 cosmic
 cosmic_debug
 cosmic_release
+cosmic_test
 
 # Editor/IDE
 .vscode/

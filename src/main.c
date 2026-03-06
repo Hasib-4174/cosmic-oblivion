@@ -1,14 +1,14 @@
 /* Cosmic Oblivion - Arcade Space Shooter */
 #include "raylib.h"
-#include "constants.h"
-#include "helpers.h"
-#include "stars.h"
-#include "particles.h"
-#include "button.h"
-#include "ship.h"
-#include "meteor.h"
-#include "game.h"
-#include "ui.h"
+#include "include/constants.h"
+#include "include/helpers.h"
+#include "include/stars.h"
+#include "include/particles.h"
+#include "include/button.h"
+#include "include/ship.h"
+#include "include/meteor.h"
+#include "include/game.h"
+#include "include/ui.h"
 #include <string.h>
 
 GameState G;

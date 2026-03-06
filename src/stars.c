@@ -1,6 +1,6 @@
-#include "stars.h"
-#include "constants.h"
-#include "helpers.h"
+#include "include/stars.h"
+#include "include/constants.h"
+#include "include/helpers.h"
 #include <math.h>
 
 extern GameState G;

@@ -1,6 +1,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#include "raylib.h"
+
 #define SW 1000
 #define SH 700
 #define MAX_BULLETS   80

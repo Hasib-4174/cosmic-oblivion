@@ -10,30 +10,41 @@
 
 ## Build & Run Commands
 
-### Compile & Run
+### Using Makefile (recommended)
 ```bash
-gcc main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic && ./cosmic
+make           # Compile game
+make run       # Compile and run
+make debug     # Debug build
+make release   # Release build
+make lint      # Run cppcheck
+make test      # Run unit tests
+make clean     # Clean build artifacts
 ```
 
-### Debug Build
+### Manual Compile
 ```bash
-gcc -g -O0 main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic_debug
+gcc src/*.c -I. -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic && ./cosmic
 ```
 
-### Release Build
+### Linting
 ```bash
-gcc -O2 -Wall -Wextra main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic_release
-```
-
-### Static Analysis
-```bash
-gcc -fanalyzer main.c helpers.c stars.c particles.c button.c ship.c meteor.c game.c ui.c -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
+make lint      # Run cppcheck static analysis
+make analyze   # Run gcc -fanalyzer
 ```
 
 ---
 
 ## Testing
-No unit tests. Manual testing required - run `./cosmic` and test: menu, ship select, gameplay, pause, game over. Controls: WASD/Arrows move, Space shoots, ESC pauses.
+
+### Unit Tests
+```bash
+make test      # Run unit tests (currently 15 tests)
+```
+
+Tests are in `tests/` directory. Add new tests to `tests/test_*.c`.
+
+### Manual Testing
+Run `./cosmic` and test: menu, ship select, gameplay, pause, game over. Controls: WASD/Arrows move, Space shoots, ESC pauses.
 
 ---
 
@@ -97,16 +108,28 @@ Group related fields. Inline where they fit.
 
 ## File Structure
 ```
-main.c         - entry point, game loop
-constants.h    - constants, enums, types
-helpers.h/c    - Rf, Clampf, CAlpha, CLerp, LoadHS, SaveHS
-stars.h/c      - starfield background
-particles.h/c  - particle effects
-button.h/c     - UI buttons
-ship.h/c       - ship rendering
-meteor.h/c     - meteor spawning/rendering
-game.h/c       - core game logic
-ui.h/c         - screens (menu, pause, game over)
+src/
+  main.c       - entry point, game loop
+  helpers.c    - Rf, Clampf, CAlpha, CLerp, LoadHS, SaveHS
+  stars.c      - starfield background
+  particles.c  - particle effects
+  button.c     - UI buttons
+  ship.c       - ship rendering
+  meteor.c     - meteor spawning/rendering
+  game.c       - core game logic
+  ui.c         - screens (menu, pause, game over)
+include/
+  constants.h  - constants, enums, types
+  helpers.h    - helper function declarations
+  stars.h      - starfield declarations
+  particles.h  - particle declarations
+  button.h     - button declarations
+  ship.h       - ship declarations
+  meteor.h     - meteor declarations
+  game.h       - game logic declarations
+  ui.h         - UI declarations
+tests/         - unit tests
+screenshots/   - game screenshots
 ```
 
 ---

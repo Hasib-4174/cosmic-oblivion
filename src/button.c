@@ -1,6 +1,6 @@
-#include "button.h"
-#include "helpers.h"
-#include "constants.h"
+#include "include/button.h"
+#include "include/helpers.h"
+#include "include/constants.h"
 
 Button MkBtn(float x,float y,float w,float h,const char*text){
     return (Button){{x,y,w,h},text,false,0.0f};
