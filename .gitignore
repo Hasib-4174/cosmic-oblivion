@@ -1,0 +1,22 @@
+highscore.txt
+
+# Compiled binaries
+cosmic
+cosmic_debug
+cosmic_release
+cosmic_test
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.o
+*.a
