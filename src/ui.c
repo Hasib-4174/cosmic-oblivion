@@ -31,7 +31,7 @@ void ScreenMenu(float dt){
     if(enter){
         if(G.menuSel==0){G.screen=SCREEN_SHIP_SELECT;G.shipSel=G.selectedShip;}
         else if(G.menuSel==1){G.screen=SCREEN_SHIP_SELECT;G.shipSel=G.selectedShip;}
-        else CloseWindow();
+        else if(G.menuSel==2){CloseWindow();}
     }
     BeginDrawing();ClearBackground((Color){4,4,16,255});DrawNebula();DrawStars();DrawParticles();
     DrawTitle((float)GetTime());
@@ -74,11 +74,14 @@ void ScreenPause(float dt){
     if(IsKeyPressed(KEY_UP))G.pauseSel=(G.pauseSel+2)%3;
     for(int i=0;i<3;i++)if(UpdateBtn(&G.pauseBtns[i],dt)&&G.pauseBtns[i].hovered)G.pauseSel=i;
     bool enter=IsKeyPressed(KEY_ENTER);
+    bool escape=IsKeyPressed(KEY_ESCAPE);
     for(int i=0;i<3;i++){if(G.pauseBtns[i].hovered&&IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){G.pauseSel=i;enter=true;}}
-    if(enter||IsKeyPressed(KEY_ESCAPE)){
-        if(G.pauseSel==0||IsKeyPressed(KEY_ESCAPE)){G.screen=SCREEN_GAMEPLAY;}
+    if(enter){
+        if(G.pauseSel==0){G.screen=SCREEN_GAMEPLAY;}
         else if(G.pauseSel==1){G.screen=SCREEN_MAIN_MENU;}
         else CloseWindow();
+    } else if(escape){
+        G.screen=SCREEN_GAMEPLAY;
     }
     BeginDrawing();
     ClearBackground((Color){4,4,16,255});
