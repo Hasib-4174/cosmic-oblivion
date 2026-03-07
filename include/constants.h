@@ -3,8 +3,9 @@
 
 #include "raylib.h"
 
-#define SW 1000
-#define SH 700
+extern int SW;
+extern int SH;
+
 #define MAX_BULLETS   80
 #define MAX_METEORS   48
 #define MAX_PARTICLES 600
