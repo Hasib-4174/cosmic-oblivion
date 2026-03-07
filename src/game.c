@@ -6,6 +6,8 @@
 #include "include/meteor.h"
 #include "include/ship.h"
 #include "include/button.h"
+#include "include/healthstar.h"
+#include "include/floatingtext.h"
 #include <math.h>
 
 extern GameState G;
@@ -26,6 +28,8 @@ void InitGame(void){
     for(int i=0;i<MAX_BULLETS;i++)G.bullets[i].active=false;
     for(int i=0;i<MAX_METEORS;i++)G.meteors[i].active=false;
     for(int i=0;i<MAX_PARTICLES;i++)G.particles[i].active=false;
+    InitHealthStars();
+    InitFloatingTexts();
     G.meteorTimer=0; G.meteorRate=1.2f; G.meteorSpeedMul=1.0f;
     G.scoreTimer=0; G.gameTime=0; G.score=0; G.meteorsDestroyed=0;
     G.comboTimer=0; G.comboMultiplier=1.0f;
@@ -75,6 +79,8 @@ void UpdateGame(float dt){
     for(int i=0;i<MAX_BULLETS;i++){if(!G.bullets[i].active)continue;G.bullets[i].pos.y-=G.bullets[i].speed*dt;if(G.bullets[i].pos.y<-10)G.bullets[i].active=false;}
     G.meteorTimer+=dt;
     if(G.meteorTimer>=G.meteorRate){G.meteorTimer-=G.meteorRate;SpawnMeteor(&G);}
+    UpdateHealthStars(dt);
+    UpdateFloatingTexts(dt);
     for(int i=0;i<MAX_METEORS;i++){if(!G.meteors[i].active)continue;Meteor*m=&G.meteors[i];m->pos.x+=m->vel.x*dt;m->pos.y+=m->vel.y*dt;m->rotation+=m->rotSpeed*dt;if(m->pos.y>SH+m->radius+30)m->active=false;}
     for(int bi=0;bi<MAX_BULLETS;bi++){
         if(!G.bullets[bi].active)continue;
@@ -96,6 +102,12 @@ void UpdateGame(float dt){
                     if(G.meteors[mi].size==METEOR_LARGE){SpawnMeteorAt(G.meteors[mi].pos,METEOR_MEDIUM);SpawnMeteorAt(G.meteors[mi].pos,METEOR_MEDIUM);}
                     else if(G.meteors[mi].size==METEOR_MEDIUM){SpawnMeteorAt(G.meteors[mi].pos,METEOR_SMALL);SpawnMeteorAt(G.meteors[mi].pos,METEOR_SMALL);}
                     if(G.meteors[mi].size>=METEOR_LARGE){G.shakeTimer=0.25f;G.shakeMag=6;}
+                    if(G.meteors[mi].size>=METEOR_MEDIUM){
+                        int chance = (G.meteors[mi].size==METEOR_LARGE) ? 20 : 8;
+                        if(GetRandomValue(0,99) < chance){
+                            SpawnHealthStarAt(G.meteors[mi].pos);
+                        }
+                    }
                 }
                 break;
             }
@@ -126,6 +138,22 @@ void UpdateGame(float dt){
             }
         }
     }
+    if(pl->alive){
+        for(int i=0;i<MAX_HEALTH_STARS;i++){
+            if(!G.healthStars[i].active)continue;
+            float dx=pl->pos.x-G.healthStars[i].pos.x,dy=pl->pos.y-G.healthStars[i].pos.y;
+            if(dx*dx+dy*dy<400){
+                G.healthStars[i].active=false;
+                if(pl->hp<pl->maxHp){
+                    pl->hp++;
+                    SpawnP(pl->pos,(Color){100,255,150,255},15,200,2.5f);
+                    SpawnFloatingText((Vector2){pl->pos.x,pl->pos.y-30},"+HP",(Color){100,255,100,255});
+                }else{
+                    SpawnFloatingText((Vector2){pl->pos.x,pl->pos.y-30},"MAX",(Color){255,200,100,255});
+                }
+            }
+        }
+    }
     if(pl->alive){G.scoreTimer+=dt;while(G.scoreTimer>=1){G.scoreTimer-=1;G.score++;}}
     UpdateParticles(dt);
 }
@@ -149,6 +177,8 @@ void DrawGameplay(void){
     BeginMode2D(cam);
     DrawStars();
     DrawParticles();
+    DrawHealthStars();
+    DrawFloatingTexts();
     for(int i=0;i<MAX_METEORS;i++){if(G.meteors[i].active)DrawMeteor(G.meteors[i]);}
     for(int i=0;i<MAX_BULLETS;i++){
         if(!G.bullets[i].active)continue;
