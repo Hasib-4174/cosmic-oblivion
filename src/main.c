@@ -12,9 +12,15 @@
 #include <string.h>
 
 GameState G;
+int SW;
+int SH;
 
 int main(void){
-    InitWindow(SW,SH,"Cosmic Oblivion");
+    int monitor = GetCurrentMonitor();
+    SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    InitWindow(0,0,"Cosmic Oblivion");
+    SW = GetScreenWidth();
+    SH = GetScreenHeight();
     SetTargetFPS(60);
     SetExitKey(KEY_NULL);
     memset(&G,0,sizeof(G));
@@ -40,6 +46,8 @@ int main(void){
             case SCREEN_PAUSE: ScreenPause(dt);break;
             case SCREEN_GAME_OVER: ScreenGameOver(dt);break;
         }
+        if(G.screen==SCREEN_GAMEPLAY)HideCursor();
+        else ShowCursor();
     }
     CloseWindow();
     return 0;
