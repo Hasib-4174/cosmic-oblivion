@@ -27,6 +27,8 @@ entirely in C using the raylib graphics library.
 - Three selectable spaceships 
 - Procedural meteor generation 
 - Particle-based visual effects 
+- Health pickup system (drops from meteors)
+- Floating text feedback
 - Score & persistent highscore system 
 - Smooth animations and screen effects
 
@@ -75,6 +77,8 @@ entirely in C using the raylib graphics library.
 -   Glow simulation
 -   Screen shake effects
 -   Animated parallax starfield background
+-   Health pickup drops from destroyed meteors
+-   Floating "+HP" feedback text
 
 ### UI System
 
@@ -92,30 +96,34 @@ entirely in C using the raylib graphics library.
 ```
 cosmic-oblivion/
 ├── src/
-│   ├── main.c       # Entry point, game loop
-│   ├── helpers.c    # Utility functions
-│   ├── stars.c      # Background starfield
-│   ├── particles.c  # Particle effects
-│   ├── button.c     # UI buttons
-│   ├── ship.c      # Ship rendering
-│   ├── meteor.c    # Meteor system
-│   ├── game.c      # Core game logic
-│   └── ui.c        # Screen functions
+│   ├── main.c         # Entry point, game loop
+│   ├── game.c         # Core game logic
+│   ├── helpers.c      # Utility functions
+│   ├── stars.c        # Background starfield
+│   ├── particles.c    # Particle effects
+│   ├── healthstar.c   # Health pickup system
+│   ├── floatingtext.c # Floating text feedback
+│   ├── button.c       # UI buttons
+│   ├── ship.c         # Ship rendering
+│   ├── meteor.c       # Meteor system
+│   └── ui.c           # Screen functions
 ├── include/
-│   ├── constants.h # Constants, enums, type definitions
-│   ├── helpers.h   # Helper function declarations
-│   ├── stars.h     # Starfield declarations
-│   ├── particles.h # Particle declarations
-│   ├── button.h    # Button declarations
-│   ├── ship.h      # Ship declarations
-│   ├── meteor.h    # Meteor declarations
-│   ├── game.h      # Game logic declarations
-│   └── ui.h        # UI declarations
-├── tests/           # Unit tests
-├── screenshots/    # Game screenshots
-├── Makefile        # Build automation
-├── AGENTS.md       # Developer documentation
-└── README.md       # This file
+│   ├── constants.h    # Constants, enums, types
+│   ├── game.h         # Game logic declarations
+│   ├── helpers.h      # Helper function declarations
+│   ├── stars.h        # Starfield declarations
+│   ├── particles.h    # Particle declarations
+│   ├── healthstar.h   # Health star declarations
+│   ├── floatingtext.h # Floating text declarations
+│   ├── button.h       # Button declarations
+│   ├── ship.h         # Ship declarations
+│   ├── meteor.h       # Meteor declarations
+│   └── ui.h           # UI declarations
+├── tests/             # Unit tests
+├── screenshots/      # Game screenshots
+├── Makefile          # Build automation
+├── AGENTS.md         # Developer documentation
+└── README.md         # This file
 ```
 
 ------------------------------------------------------------------------
@@ -188,6 +196,8 @@ gcc src/*.c -I. -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 | **Pause** | ESC |
 | **Select** | Enter |
 
+> **Tip:** Large and medium meteors have a chance to drop health pickups. Collect them to restore HP!
+
 ------------------------------------------------------------------------
 
 ## Highscore System
@@ -217,7 +227,7 @@ Run `./cosmic` and test: menu, ship select, gameplay, pause, game over.
 -   Built in pure C (C99 compatible)
 -   No external game engine
 -   Minimal dependencies
--   Modular architecture (10 source files)
+-   Modular architecture (12 source files)
 -   Clean state-based architecture
 
 ------------------------------------------------------------------------
