@@ -40,7 +40,6 @@ int main(void)
     G.bgmGameover = LoadMusicStream("audio/bg/bgm_gameover.wav");
     SetMusicVolume(G.bgm, G.bgmVolume);
     SetMusicVolume(G.bgmGameover, G.bgmVolume);
-    PlayMusicStream(G.bgm);
 
     G.screen = SCREEN_LOGO;
     G.highscore = LoadHS();

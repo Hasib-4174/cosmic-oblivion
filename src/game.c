@@ -18,9 +18,8 @@ static void EnsureExplosionVariants(void)
 {
     if (G.explosionVariantCount > 0)
         return;
-    G.explosionVariants[0] = LoadSound("audio/explosion/explosion.wav");
-    G.explosionVariants[1] = LoadSound("audio/explosion/explosion_01.ogg");
-    G.explosionVariants[2] = LoadSound("audio/explosion/explosion_02.ogg");
+    G.explosionVariants[0] = LoadSound("audio/explosion/explosion_01.ogg");
+    G.explosionVariants[1] = LoadSound("audio/explosion/explosion_02.ogg");
     G.explosionVariantCount = MAX_EXPLOSION_VARIANTS;
 }
 
@@ -99,7 +98,7 @@ static void PlayDamageSound(void)
         return;
     if (G.damageSound.frameCount == 0)
         G.damageSound = LoadSound("audio/damage/damage_take.mp3");
-    SetSoundVolume(G.damageSound, 0.8f);
+    SetSoundVolume(G.damageSound, 0.15f);
     PlaySound(G.damageSound);
 }
 
@@ -259,7 +258,7 @@ void UpdateGame(float dt)
         if (fabsf(pl->vel.x) > 20 || fabsf(pl->vel.y) > 20)
         {
             Color ec = (pl->type == SHIP_INTERCEPTOR) ? (Color){0, 220, 255, 255} : (pl->type == SHIP_DESTROYER) ? (Color){255, 160, 40, 255}
-                                                                                                                  : (Color){255, 50, 20, 255};
+                                                                                                                 : (Color){255, 50, 20, 255};
             SpawnP((Vector2){pl->pos.x + Rf(-4, 4), pl->pos.y + 22}, ec, 1, 40, 2.5f);
         }
         pl->fireCooldown -= dt;
@@ -360,7 +359,7 @@ void UpdateGame(float dt)
                     SpawnP(G.meteors[mi].pos, G.meteors[mi].color, 18, 200, 3.5f);
                     SpawnP(G.meteors[mi].pos, (Color){255, 220, 100, 255}, 8, 160, 2);
                     int bonus = (G.meteors[mi].size == METEOR_LARGE) ? 30 : (G.meteors[mi].size == METEOR_MEDIUM) ? 20
-                                                                                                                   : 10;
+                                                                                                                  : 10;
                     G.score += (int)(bonus * G.comboMultiplier);
                     G.comboTimer = 2.0f;
                     G.comboMultiplier = Clampf(G.comboMultiplier + 0.25f, 1, 5);
@@ -535,7 +534,7 @@ void DrawHPBar(Player p)
     DrawRectangle(x, y, bw, bh, (Color){40, 40, 40, 200});
     float frac = (float)p.hp / p.maxHp;
     Color hc = frac > 0.5f ? (Color){50, 200, 80, 255} : frac > 0.25f ? (Color){255, 200, 40, 255}
-                                                                       : (Color){255, 50, 40, 255};
+                                                                      : (Color){255, 50, 40, 255};
     DrawRectangle(x, y, (int)(bw * frac), bh, hc);
     DrawRectangleLinesEx((Rectangle){x, y, bw, bh}, 1, WHITE);
     DrawText(TextFormat("HP %d/%d", p.hp, p.maxHp), x + bw + 8, y - 2, 16, WHITE);

@@ -86,6 +86,10 @@ void ScreenLogo(float dt)
     if (G.logoTimer > 3)
     {
         G.screen = SCREEN_MAIN_MENU;
+        if (G.audioEnabled)
+        {
+            PlayMusicStream(G.bgm);
+        }
         G.menuBtns[0] = MkBtn(SW / 2 - 110, 280, 220, 50, "PLAY GAME");
         G.menuBtns[1] = MkBtn(SW / 2 - 110, 350, 220, 50, "SPACESHIPS");
         G.menuBtns[2] = MkBtn(SW / 2 - 110, 420, 220, 50, "OPTIONS");
@@ -387,8 +391,6 @@ void ScreenOptions(float dt)
     DrawNebula();
     DrawStars();
     DrawTitle((float)GetTime());
-    const char *title = "OPTIONS";
-    DrawText(title, (SW - MeasureText(title, 40)) / 2, 120, 40, WHITE);
     for (int i = 0; i < 2; i++)
         DrawBtn(G.optBtns[i], i == G.optSel);
     DrawAudioToggle();
@@ -412,11 +414,16 @@ void ScreenAudio(float dt)
     if (G.audioSel < numSliders)
     {
         float *vol = 0;
-        if (G.audioSel == 0) vol = &G.bgmVolume;
-        else if (G.audioSel == 1) vol = &G.firingVolume;
-        else if (G.audioSel == 2) vol = &G.explosionVolume;
-        else if (G.audioSel == 3) vol = &G.healthPickupVolume;
-        else if (G.audioSel == 4) vol = &G.shieldPickupVolume;
+        if (G.audioSel == 0)
+            vol = &G.bgmVolume;
+        else if (G.audioSel == 1)
+            vol = &G.firingVolume;
+        else if (G.audioSel == 2)
+            vol = &G.explosionVolume;
+        else if (G.audioSel == 3)
+            vol = &G.healthPickupVolume;
+        else if (G.audioSel == 4)
+            vol = &G.shieldPickupVolume;
 
         if (vol)
         {
@@ -475,8 +482,7 @@ void ScreenAudio(float dt)
         {200, 160, 0, 255},
         {200, 50, 0, 255},
         {100, 255, 150, 255},
-        {100, 200, 255, 255}
-    };
+        {100, 200, 255, 255}};
 
     for (int i = 0; i < numSliders; i++)
     {
