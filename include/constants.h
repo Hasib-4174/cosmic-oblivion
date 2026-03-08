@@ -7,12 +7,13 @@
 extern int SW;
 extern int SH;
 
-#define MAX_BULLETS 80
+#define MAX_BULLETS 128
 #define MAX_METEORS 48
 #define MAX_PARTICLES 600
 #define MAX_STARS 200
 #define MAX_HEALTH_STARS 8
 #define MAX_SHIELD_PICKUPS 8
+#define MAX_ENEMIES 8
 #define MAX_FLOATING_TEXT 16
 #define MAX_EXPLOSION_VARIANTS 2
 #define HIGHSCORE_FILE "highscore.txt"
@@ -75,7 +76,7 @@ typedef struct
     Vector2 pos;
     Vector2 vel;
     float life;
-    const char *text;
+    char text[32];
     Color color;
     bool active;
 } FloatingText;
@@ -84,7 +85,18 @@ typedef struct
     Vector2 pos;
     float speed;
     bool active;
+    bool isEnemy;
 } Bullet;
+
+typedef struct
+{
+    Vector2 pos, vel;
+    float rotation, speed;
+    float fireCooldown;
+    int hp;
+    ShipType type;
+    bool active;
+} Enemy;
 
 typedef struct
 {
@@ -126,8 +138,10 @@ typedef struct
     Star stars[MAX_STARS];
     HealthStar healthStars[MAX_HEALTH_STARS];
     ShieldPickup shieldPickups[MAX_SHIELD_PICKUPS];
+    Enemy enemies[MAX_ENEMIES];
     FloatingText floatingTexts[MAX_FLOATING_TEXT];
     float meteorTimer, meteorRate, meteorSpeedMul;
+    float enemyTimer, enemyRate;
     float scoreTimer, gameTime;
     int score, highscore, meteorsDestroyed;
     float comboTimer, comboMultiplier;

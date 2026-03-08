@@ -5,5 +5,6 @@
 #include "constants.h"
 
 void DrawShipShape(Vector2 p, ShipType t, float hover, bool engineOn);
+void DrawEnemyShip(Vector2 pos, ShipType t, float rotation);
 
 #endif

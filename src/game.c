@@ -9,7 +9,9 @@
 #include "include/healthstar.h"
 #include "include/shieldpickup.h"
 #include "include/floatingtext.h"
+#include "include/enemy.h"
 #include <math.h>
+#include <stdio.h>
 
 extern GameState G;
 
@@ -147,9 +149,12 @@ void InitGame(void)
     InitHealthStars();
     InitShieldPickups();
     InitFloatingTexts();
+    InitEnemies();
     G.meteorTimer = 0;
     G.meteorRate = 1.2f;
     G.meteorSpeedMul = 1.0f;
+    G.enemyTimer = 0;
+    G.enemyRate = 5.0f;
     G.scoreTimer = 0;
     G.gameTime = 0;
     G.score = 0;
@@ -273,7 +278,7 @@ void UpdateGame(float dt)
                     {
                         if (!G.bullets[i].active)
                         {
-                            G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, 600, true};
+                            G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, 600, true, false};
                             PlayFiringSound();
                             break;
                         }
@@ -288,7 +293,7 @@ void UpdateGame(float dt)
                     {
                         if (!G.bullets[i].active)
                         {
-                            G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, 550, true};
+                            G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, 550, true, false};
                             PlayFiringSound();
                             break;
                         }
@@ -301,7 +306,7 @@ void UpdateGame(float dt)
                 {
                     if (!G.bullets[i].active)
                     {
-                        G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, 650, true};
+                        G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, 650, true, false};
                         PlayFiringSound();
                         break;
                     }
@@ -314,8 +319,14 @@ void UpdateGame(float dt)
     {
         if (!G.bullets[i].active)
             continue;
-        G.bullets[i].pos.y -= G.bullets[i].speed * dt;
-        if (G.bullets[i].pos.y < -10)
+        
+        float speed = G.bullets[i].speed;
+        if (G.bullets[i].isEnemy)
+            G.bullets[i].pos.y += speed * dt;
+        else
+            G.bullets[i].pos.y -= speed * dt;
+
+        if (G.bullets[i].pos.y < -20 || G.bullets[i].pos.y > SH + 20)
             G.bullets[i].active = false;
     }
     G.meteorTimer += dt;
@@ -327,6 +338,14 @@ void UpdateGame(float dt)
     UpdateHealthStars(dt);
     UpdateShieldPickups(dt);
     UpdateFloatingTexts(dt);
+    UpdateEnemies(dt);
+
+    G.enemyTimer += dt;
+    if (G.enemyTimer >= G.enemyRate)
+    {
+        G.enemyTimer -= G.enemyRate;
+        SpawnEnemy();
+    }
     for (int i = 0; i < MAX_METEORS; i++)
     {
         if (!G.meteors[i].active)
@@ -397,6 +416,100 @@ void UpdateGame(float dt)
             }
         }
     }
+
+    /* Player bullets hit enemies */
+    for (int bi = 0; bi < MAX_BULLETS; bi++)
+    {
+        if (!G.bullets[bi].active || G.bullets[bi].isEnemy)
+            continue;
+        for (int ei = 0; ei < MAX_ENEMIES; ei++)
+        {
+            if (!G.enemies[ei].active)
+                continue;
+            float dx = G.bullets[bi].pos.x - G.enemies[ei].pos.x;
+            float dy = G.bullets[bi].pos.y - G.enemies[ei].pos.y;
+            float radius = 32.0f;
+            if (G.enemies[ei].type == SHIP_DESTROYER) radius = 45.0f;
+            else if (G.enemies[ei].type == SHIP_TITAN) radius = 70.0f;
+
+            if (dx * dx + dy * dy < radius * radius)
+            {
+                G.bullets[bi].active = false;
+                G.enemies[ei].hp--;
+                SpawnP(G.bullets[bi].pos, RED, 8, 100, 2);
+                if (G.enemies[ei].hp <= 0)
+                {
+                    G.enemies[ei].active = false;
+                    PlayExplosionSound();
+                    SpawnP(G.enemies[ei].pos, RED, 20, 200, 3.5f);
+                    
+                    int points = 150;
+                    if (G.enemies[ei].type == SHIP_DESTROYER) points = 500;
+                    else if (G.enemies[ei].type == SHIP_TITAN) points = 1500;
+                    
+                    G.score += points;
+                    char buf[16];
+                    sprintf(buf, "+%d", points);
+                    SpawnFloatingText(G.enemies[ei].pos, buf, GOLD);
+                }
+                break;
+            }
+        }
+    }
+
+    /* Enemy bullets hit player */
+    if (pl->alive && pl->shieldTimer <= 0 && !G.playerShieldActive)
+    {
+        for (int bi = 0; bi < MAX_BULLETS; bi++)
+        {
+            if (!G.bullets[bi].active || !G.bullets[bi].isEnemy)
+                continue;
+            float dx = pl->pos.x - G.bullets[bi].pos.x;
+            float dy = pl->pos.y - G.bullets[bi].pos.y;
+            if (dx * dx + dy * dy < 20 * 20)
+            {
+                G.bullets[bi].active = false;
+                pl->hp--;
+                pl->shieldTimer = 0.5f;
+                pl->damageFlash = 0.2f;
+                PlayDamageSound();
+                SpawnP(pl->pos, WHITE, 8, 120, 2);
+                if (pl->hp <= 0)
+                {
+                    pl->alive = false;
+                    SpawnP(pl->pos, WHITE, 40, 300, 4);
+                    SpawnP(pl->pos, (Color){255, 100, 30, 255}, 30, 250, 3.5f);
+                    SpawnP(pl->pos, SKYBLUE, 20, 200, 3);
+                    G.slowMoTimer = 0.6f;
+                    G.shakeTimer = 0.5f;
+                    G.shakeMag = 12;
+                    if (G.score > G.highscore)
+                    {
+                        G.highscore = G.score;
+                        SaveHS(G.highscore);
+                    }
+                    G.gameOver = true;
+                    StopMusicStream(G.bgm);
+                    if (G.audioEnabled)
+                    {
+                        PlayMusicStream(G.bgmGameover);
+                        SetMusicVolume(G.bgmGameover, G.bgmVolume);
+                    }
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (IsSoundPlaying(G.engineSounds[i]))
+                            StopSound(G.engineSounds[i]);
+                    }
+                    G.enginePlaying = false;
+                    G.screen = SCREEN_GAME_OVER;
+                    G.goBtns[0] = MkBtn(SW / 2 - 100, 480, 200, 48, "PLAY AGAIN");
+                    G.goBtns[1] = MkBtn(SW / 2 - 100, 540, 200, 48, "MAIN MENU");
+                    G.goSel = 0;
+                }
+            }
+        }
+    }
+
     /* Player-Meteor collision (respects both invincibility timer and shield) */
     if (pl->alive && pl->shieldTimer <= 0 && !G.playerShieldActive)
     {
@@ -557,6 +670,7 @@ void DrawGameplay(void)
     DrawHealthStars();
     DrawShieldPickups();
     DrawFloatingTexts();
+    DrawEnemies();
     for (int i = 0; i < MAX_METEORS; i++)
     {
         if (G.meteors[i].active)
@@ -567,9 +681,10 @@ void DrawGameplay(void)
         if (!G.bullets[i].active)
             continue;
         Vector2 bp = G.bullets[i].pos;
-        DrawRectangle((int)bp.x - 2, (int)bp.y - 7, 4, 14, (Color){180, 230, 255, 255});
+        Color bc = G.bullets[i].isEnemy ? RED : (Color){180, 230, 255, 255};
+        DrawRectangle((int)bp.x - 2, (int)bp.y - 7, 4, 14, bc);
         DrawRectangle((int)bp.x - 1, (int)bp.y - 5, 2, 10, WHITE);
-        DrawCircleV(bp, 5, CAlpha((Color){150, 200, 255, 255}, 60));
+        DrawCircleV(bp, 5, CAlpha(bc, 60));
     }
     if (G.player.alive)
     {
