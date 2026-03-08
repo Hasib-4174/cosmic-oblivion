@@ -2,6 +2,7 @@
 #define CONSTANTS_H
 
 #include "raylib.h"
+#include <stdbool.h>
 
 extern int SW;
 extern int SH;
@@ -11,7 +12,9 @@ extern int SH;
 #define MAX_PARTICLES 600
 #define MAX_STARS 200
 #define MAX_HEALTH_STARS 8
+#define MAX_SHIELD_PICKUPS 8
 #define MAX_FLOATING_TEXT 16
+#define MAX_EXPLOSION_VARIANTS 3
 #define HIGHSCORE_FILE "highscore.txt"
 
 typedef enum
@@ -60,6 +63,13 @@ typedef struct
     Vector2 vel;
     bool active;
 } HealthStar;
+typedef struct
+{
+    Vector2 pos;
+    float rotation, pulsePhase;
+    Vector2 vel;
+    bool active;
+} ShieldPickup;
 typedef struct
 {
     Vector2 pos;
@@ -115,6 +125,7 @@ typedef struct
     Particle particles[MAX_PARTICLES];
     Star stars[MAX_STARS];
     HealthStar healthStars[MAX_HEALTH_STARS];
+    ShieldPickup shieldPickups[MAX_SHIELD_PICKUPS];
     FloatingText floatingTexts[MAX_FLOATING_TEXT];
     float meteorTimer, meteorRate, meteorSpeedMul;
     float scoreTimer, gameTime;
@@ -125,18 +136,54 @@ typedef struct
     ShipType selectedShip;
     int menuSel, pauseSel, goSel, shipSel, optSel, audioSel;
     bool gameOver;
+
+    /* Audio volumes */
     float bgmVolume;
     float firingVolume;
     float explosionVolume;
     float healthPickupVolume;
-    Button menuBtns[4], pauseBtns[3], goBtns[2], optBtns[2], audioBtns[5];
+    float shieldPickupVolume;
+
+    /* Audio toggle */
+    bool audioEnabled;
+
+    /* Buttons */
+    Button menuBtns[4], pauseBtns[3], goBtns[2], optBtns[2];
+    Button audioBackBtn;
+
+    /* Firing sound pool */
     Sound firingSounds[8];
     int firingSoundIdx;
+
+    /* Explosion sound pool (round-robin instances of random variants) */
     Sound explosionSounds[8];
     int explosionSoundIdx;
+    Sound explosionVariants[MAX_EXPLOSION_VARIANTS];
+    int explosionVariantCount;
+
+    /* Health pickup sound pool */
     Sound healthPickupSounds[8];
     int healthPickupSoundIdx;
+
+    /* Shield pickup sound pool */
+    Sound shieldPickupSounds[8];
+    int shieldPickupSoundIdx;
+
+    /* Damage sound */
+    Sound damageSound;
+
+    /* Engine sounds (one per ship type) */
+    Sound engineSounds[3];
+    bool engineSoundsLoaded;
+    bool enginePlaying;
+
+    /* BGM */
     Music bgm;
+    Music bgmGameover;
+
+    /* Shield pickup system */
+    bool playerShieldActive;
+    float playerShieldDuration;
 } GameState;
 
 #endif

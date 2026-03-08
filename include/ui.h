@@ -11,5 +11,6 @@ void ScreenPause(float dt);
 void ScreenGameOver(float dt);
 void ScreenOptions(float dt);
 void ScreenAudio(float dt);
+void DrawAudioToggle(void);
 
 #endif
