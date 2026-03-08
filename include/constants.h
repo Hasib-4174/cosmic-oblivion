@@ -76,7 +76,7 @@ typedef struct
     Vector2 pos;
     Vector2 vel;
     float life;
-    const char *text;
+    char text[32];
     Color color;
     bool active;
 } FloatingText;
@@ -94,6 +94,7 @@ typedef struct
     float rotation, speed;
     float fireCooldown;
     int hp;
+    ShipType type;
     bool active;
 } Enemy;
 

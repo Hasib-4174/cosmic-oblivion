@@ -23,12 +23,33 @@ void SpawnEnemy(void)
 
         Enemy *e = &G.enemies[i];
         e->active = true;
-        e->pos = (Vector2){Rf(40, SW - 40), -40};
+        e->pos = (Vector2){Rf(60, SW - 60), -60};
         e->vel = (Vector2){0, 0};
-        e->speed = Rf(80, 150);
-        e->hp = 2;
-        e->fireCooldown = Rf(1.0f, 2.5f);
         e->rotation = 180.0f; // Facing down
+
+        // Weighted spawning
+        int roll = GetRandomValue(0, 99);
+        if (roll < 10) // 10% Titan
+        {
+            e->type = SHIP_TITAN;
+            e->hp = 12;
+            e->speed = Rf(30, 50);
+            e->fireCooldown = Rf(2.5f, 4.0f);
+        }
+        else if (roll < 30) // 20% Destroyer
+        {
+            e->type = SHIP_DESTROYER;
+            e->hp = 5;
+            e->speed = Rf(60, 90);
+            e->fireCooldown = Rf(1.0f, 2.0f);
+        }
+        else // 70% Interceptor
+        {
+            e->type = SHIP_INTERCEPTOR;
+            e->hp = 2;
+            e->speed = Rf(100, 160);
+            e->fireCooldown = Rf(1.5f, 3.0f);
+        }
         return;
     }
 }
@@ -65,19 +86,59 @@ void UpdateEnemies(float dt)
         e->fireCooldown -= dt;
         if (e->fireCooldown <= 0)
         {
-            e->fireCooldown = Rf(1.5f, 3.0f);
-            // Spawn enemy bullet
-            for (int b = 0; b < MAX_BULLETS; b++)
+            if (e->type == SHIP_TITAN)
             {
-                if (!G.bullets[b].active)
+                e->fireCooldown = Rf(2.5f, 4.0f);
+                // Triple shot
+                float offsetsX[] = {-20, 0, 20};
+                for (int s = 0; s < 3; s++)
                 {
-                    G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y + 20};
-                    G.bullets[b].speed = 400.0f;
-                    G.bullets[b].active = true;
-                    G.bullets[b].isEnemy = true;
-                    // Note: In a real implementation we'd probably call a Sound play function here
-                    // but we'll stick to logic for now and integrate sound later if needed.
-                    break;
+                    for (int b = 0; b < MAX_BULLETS; b++)
+                    {
+                        if (!G.bullets[b].active)
+                        {
+                            G.bullets[b].pos = (Vector2){e->pos.x + offsetsX[s], e->pos.y + 40};
+                            G.bullets[b].speed = 350.0f;
+                            G.bullets[b].active = true;
+                            G.bullets[b].isEnemy = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (e->type == SHIP_DESTROYER)
+            {
+                e->fireCooldown = Rf(1.2f, 2.2f);
+                // Dual shot
+                float offsetsX[] = {-18, 18};
+                for (int s = 0; s < 2; s++)
+                {
+                    for (int b = 0; b < MAX_BULLETS; b++)
+                    {
+                        if (!G.bullets[b].active)
+                        {
+                            G.bullets[b].pos = (Vector2){e->pos.x + offsetsX[s], e->pos.y + 30};
+                            G.bullets[b].speed = 450.0f;
+                            G.bullets[b].active = true;
+                            G.bullets[b].isEnemy = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            else // Interceptor
+            {
+                e->fireCooldown = Rf(1.5f, 3.0f);
+                for (int b = 0; b < MAX_BULLETS; b++)
+                {
+                    if (!G.bullets[b].active)
+                    {
+                        G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y + 20};
+                        G.bullets[b].speed = 500.0f;
+                        G.bullets[b].active = true;
+                        G.bullets[b].isEnemy = true;
+                        break;
+                    }
                 }
             }
         }
@@ -98,7 +159,7 @@ void UpdateEnemies(float dt)
             float dx = e->pos.x - other->pos.x;
             float dy = e->pos.y - other->pos.y;
             float distSq = dx * dx + dy * dy;
-            float minDist = 50.0f;
+            float minDist = (e->type == SHIP_TITAN || other->type == SHIP_TITAN) ? 100.0f : 60.0f;
             if (distSq < minDist * minDist && distSq > 0.01f)
             {
                 float dist = sqrtf(distSq);
@@ -116,7 +177,7 @@ void DrawEnemies(void)
     {
         if (G.enemies[i].active)
         {
-            DrawEnemyShip(G.enemies[i].pos, G.enemies[i].rotation);
+            DrawEnemyShip(G.enemies[i].pos, G.enemies[i].type, G.enemies[i].rotation);
         }
     }
 }

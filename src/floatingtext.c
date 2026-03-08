@@ -23,7 +23,8 @@ void SpawnFloatingText(Vector2 pos, const char *text, Color color)
             G.floatingTexts[i].pos = pos;
             G.floatingTexts[i].vel = (Vector2){Rf(-20, 20), Rf(-60, -40)};
             G.floatingTexts[i].life = 1.0f;
-            G.floatingTexts[i].text = text;
+            strncpy(G.floatingTexts[i].text, text, 31);
+            G.floatingTexts[i].text[31] = '\0';
             G.floatingTexts[i].color = color;
             return;
         }
@@ -40,7 +41,7 @@ void UpdateFloatingTexts(float dt)
         ft->pos.x += ft->vel.x * dt;
         ft->pos.y += ft->vel.y * dt;
         ft->vel.y += 80.0f * dt;
-        ft->life -= dt * 1.5f;
+        ft->life -= dt * 1.0f;
         if (ft->life <= 0)
             ft->active = false;
     }

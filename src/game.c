@@ -11,6 +11,7 @@
 #include "include/floatingtext.h"
 #include "include/enemy.h"
 #include <math.h>
+#include <stdio.h>
 
 extern GameState G;
 
@@ -427,7 +428,11 @@ void UpdateGame(float dt)
                 continue;
             float dx = G.bullets[bi].pos.x - G.enemies[ei].pos.x;
             float dy = G.bullets[bi].pos.y - G.enemies[ei].pos.y;
-            if (dx * dx + dy * dy < 32 * 32)
+            float radius = 32.0f;
+            if (G.enemies[ei].type == SHIP_DESTROYER) radius = 45.0f;
+            else if (G.enemies[ei].type == SHIP_TITAN) radius = 70.0f;
+
+            if (dx * dx + dy * dy < radius * radius)
             {
                 G.bullets[bi].active = false;
                 G.enemies[ei].hp--;
@@ -437,8 +442,15 @@ void UpdateGame(float dt)
                     G.enemies[ei].active = false;
                     PlayExplosionSound();
                     SpawnP(G.enemies[ei].pos, RED, 20, 200, 3.5f);
-                    G.score += 150;
-                    SpawnFloatingText(G.enemies[ei].pos, "+150", GOLD);
+                    
+                    int points = 150;
+                    if (G.enemies[ei].type == SHIP_DESTROYER) points = 500;
+                    else if (G.enemies[ei].type == SHIP_TITAN) points = 1500;
+                    
+                    G.score += points;
+                    char buf[16];
+                    sprintf(buf, "+%d", points);
+                    SpawnFloatingText(G.enemies[ei].pos, buf, GOLD);
                 }
                 break;
             }
