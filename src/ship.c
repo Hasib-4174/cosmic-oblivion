@@ -52,3 +52,37 @@ void DrawShipShape(Vector2 p, ShipType t, float hover, bool engineOn)
         }
     }
 }
+
+void DrawEnemyShip(Vector2 pos, float rotation)
+{
+    (void)rotation;
+    Vector2 p = pos;
+    float t = (float)GetTime();
+
+    // Aggressive trail effect
+    float trailPulse = 0.5f + 0.5f * sinf(t * 10.0f);
+    DrawTriangle((Vector2){p.x - 8, p.y - 15}, (Vector2){p.x, p.y - 40 - trailPulse * 10}, (Vector2){p.x + 8, p.y - 15}, CAlpha(RED, 100));
+
+    // Outer wings / Scythes
+    DrawTriangle((Vector2){p.x - 25, p.y - 10}, (Vector2){p.x - 35, p.y - 25}, (Vector2){p.x - 10, p.y}, (Color){100, 0, 0, 255});
+    DrawTriangle((Vector2){p.x + 25, p.y - 10}, (Vector2){p.x + 10, p.y}, (Vector2){p.x + 35, p.y - 25}, (Color){100, 0, 0, 255});
+
+    // Main hull (angular red blocks)
+    DrawTriangle((Vector2){p.x, p.y + 28}, (Vector2){p.x - 18, p.y - 12}, (Vector2){p.x + 18, p.y - 12}, (Color){180, 20, 20, 255});
+    DrawTriangle((Vector2){p.x - 18, p.y - 12}, (Vector2){p.x - 12, p.y - 20}, (Vector2){p.x, p.y - 12}, (Color){140, 10, 10, 255});
+    DrawTriangle((Vector2){p.x + 18, p.y - 12}, (Vector2){p.x, p.y - 12}, (Vector2){p.x + 12, p.y - 20}, (Color){140, 10, 10, 255});
+
+    // Metallic trim / Inner detail
+    DrawTriangle((Vector2){p.x, p.y + 15}, (Vector2){p.x - 8, p.y}, (Vector2){p.x + 8, p.y}, (Color){60, 60, 70, 255});
+
+    // Pulsing Cockpit
+    float pulse = 0.8f + 0.2f * sinf(t * 8.0f);
+    Color cockpitColor = CAlpha((Color){255, 100, 100, 255}, (unsigned char)(200 * pulse));
+    DrawCircleV((Vector2){p.x, p.y + 2}, 5, cockpitColor);
+    DrawCircleV((Vector2){p.x, p.y + 2}, 3, WHITE);
+
+    // Lateral engine glows
+    unsigned char ea = (unsigned char)(180 + GetRandomValue(0, 75));
+    DrawCircleV((Vector2){p.x - 14, p.y - 14}, 4, CAlpha(ORANGE, ea));
+    DrawCircleV((Vector2){p.x + 14, p.y - 14}, 4, CAlpha(ORANGE, ea));
+}
