@@ -14,7 +14,7 @@ extern int SH;
 #define MAX_HEALTH_STARS 8
 #define MAX_SHIELD_PICKUPS 8
 #define MAX_FLOATING_TEXT 16
-#define MAX_EXPLOSION_VARIANTS 3
+#define MAX_EXPLOSION_VARIANTS 2
 #define HIGHSCORE_FILE "highscore.txt"
 
 typedef enum
