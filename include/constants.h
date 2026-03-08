@@ -148,7 +148,7 @@ typedef struct
     bool audioEnabled;
 
     /* Buttons */
-    Button menuBtns[4], pauseBtns[3], goBtns[2], optBtns[2];
+    Button menuBtns[3], pauseBtns[3], goBtns[2], optBtns[2];
     Button audioBackBtn;
 
     /* Firing sound pool */

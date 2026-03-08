@@ -90,10 +90,9 @@ void ScreenLogo(float dt)
         {
             PlayMusicStream(G.bgm);
         }
-        G.menuBtns[0] = MkBtn(SW / 2 - 110, 280, 220, 50, "PLAY GAME");
-        G.menuBtns[1] = MkBtn(SW / 2 - 110, 350, 220, 50, "SPACESHIPS");
-        G.menuBtns[2] = MkBtn(SW / 2 - 110, 420, 220, 50, "OPTIONS");
-        G.menuBtns[3] = MkBtn(SW / 2 - 110, 490, 220, 50, "EXIT");
+        G.menuBtns[0] = MkBtn(SW / 2 - 110, 300, 220, 50, "PLAY GAME");
+        G.menuBtns[1] = MkBtn(SW / 2 - 110, 390, 220, 50, "OPTIONS");
+        G.menuBtns[2] = MkBtn(SW / 2 - 110, 480, 220, 50, "EXIT");
         G.menuSel = 0;
     }
 }
@@ -105,19 +104,19 @@ void ScreenMenu(float dt)
         SpawnP((Vector2){Rf(0, SW), Rf(0, SH)}, CAlpha((Color){60, 100, 200, 255}, 120), 1, 20, 1.5f);
     if (IsKeyPressed(KEY_DOWN))
     {
-        G.menuSel = (G.menuSel + 1) % 4;
+        G.menuSel = (G.menuSel + 1) % 3;
     }
     if (IsKeyPressed(KEY_UP))
     {
-        G.menuSel = (G.menuSel + 3) % 4;
+        G.menuSel = (G.menuSel + 2) % 3;
     }
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
         if (UpdateBtn(&G.menuBtns[i], dt))
             G.menuSel = i;
     }
     bool enter = IsKeyPressed(KEY_ENTER);
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
         if (G.menuBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
@@ -134,17 +133,12 @@ void ScreenMenu(float dt)
         }
         else if (G.menuSel == 1)
         {
-            G.screen = SCREEN_SHIP_SELECT;
-            G.shipSel = G.selectedShip;
-        }
-        else if (G.menuSel == 2)
-        {
             G.screen = SCREEN_OPTIONS;
             G.optBtns[0] = MkBtn(SW / 2 - 110, 320, 220, 50, "AUDIO");
             G.optBtns[1] = MkBtn(SW / 2 - 110, 390, 220, 50, "BACK");
             G.optSel = 0;
         }
-        else if (G.menuSel == 3)
+        else if (G.menuSel == 2)
         {
             CloseWindow();
         }
@@ -155,7 +149,7 @@ void ScreenMenu(float dt)
     DrawStars();
     DrawParticles();
     DrawTitle((float)GetTime());
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
         DrawBtn(G.menuBtns[i], i == G.menuSel);
     DrawAudioToggle();
     EndDrawing();
