@@ -24,9 +24,10 @@ void ScreenLogo(float dt)
     if (G.logoTimer > 3)
     {
         G.screen = SCREEN_MAIN_MENU;
-        G.menuBtns[0] = MkBtn(SW / 2 - 110, 320, 220, 50, "PLAY GAME");
-        G.menuBtns[1] = MkBtn(SW / 2 - 110, 390, 220, 50, "SPACESHIPS");
-        G.menuBtns[2] = MkBtn(SW / 2 - 110, 460, 220, 50, "EXIT");
+        G.menuBtns[0] = MkBtn(SW / 2 - 110, 280, 220, 50, "PLAY GAME");
+        G.menuBtns[1] = MkBtn(SW / 2 - 110, 350, 220, 50, "SPACESHIPS");
+        G.menuBtns[2] = MkBtn(SW / 2 - 110, 420, 220, 50, "OPTIONS");
+        G.menuBtns[3] = MkBtn(SW / 2 - 110, 490, 220, 50, "EXIT");
         G.menuSel = 0;
     }
 }
@@ -38,19 +39,19 @@ void ScreenMenu(float dt)
         SpawnP((Vector2){Rf(0, SW), Rf(0, SH)}, CAlpha((Color){60, 100, 200, 255}, 120), 1, 20, 1.5f);
     if (IsKeyPressed(KEY_DOWN))
     {
-        G.menuSel = (G.menuSel + 1) % 3;
+        G.menuSel = (G.menuSel + 1) % 4;
     }
     if (IsKeyPressed(KEY_UP))
     {
-        G.menuSel = (G.menuSel + 2) % 3;
+        G.menuSel = (G.menuSel + 3) % 4;
     }
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         if (UpdateBtn(&G.menuBtns[i], dt))
             G.menuSel = i;
     }
     bool enter = IsKeyPressed(KEY_ENTER);
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         if (G.menuBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
@@ -72,6 +73,13 @@ void ScreenMenu(float dt)
         }
         else if (G.menuSel == 2)
         {
+            G.screen = SCREEN_OPTIONS;
+            G.optBtns[0] = MkBtn(SW / 2 - 110, 320, 220, 50, "AUDIO");
+            G.optBtns[1] = MkBtn(SW / 2 - 110, 390, 220, 50, "BACK");
+            G.optSel = 0;
+        }
+        else if (G.menuSel == 3)
+        {
             CloseWindow();
         }
     }
@@ -81,7 +89,7 @@ void ScreenMenu(float dt)
     DrawStars();
     DrawParticles();
     DrawTitle((float)GetTime());
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
         DrawBtn(G.menuBtns[i], i == G.menuSel);
     EndDrawing();
 }
@@ -247,5 +255,143 @@ void ScreenGameOver(float dt)
     DrawText(TextFormat("Meteors Destroyed: %d", G.meteorsDestroyed), (SW - MeasureText(TextFormat("Meteors Destroyed: %d", G.meteorsDestroyed), 20)) / 2, 320, 20, LIGHTGRAY);
     for (int i = 0; i < 2; i++)
         DrawBtn(G.goBtns[i], i == G.goSel);
+    EndDrawing();
+}
+void ScreenOptions(float dt)
+{
+    UpdateStars(dt);
+    if (IsKeyPressed(KEY_DOWN))
+        G.optSel = (G.optSel + 1) % 2;
+    if (IsKeyPressed(KEY_UP))
+        G.optSel = (G.optSel + 1) % 2;
+    for (int i = 0; i < 2; i++)
+    {
+        if (UpdateBtn(&G.optBtns[i], dt))
+            G.optSel = i;
+    }
+    bool enter = IsKeyPressed(KEY_ENTER);
+    for (int i = 0; i < 2; i++)
+    {
+        if (G.optBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            G.optSel = i;
+            enter = true;
+        }
+    }
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        G.screen = SCREEN_MAIN_MENU;
+    }
+    if (enter)
+    {
+        if (G.optSel == 0)
+        {
+            G.screen = SCREEN_AUDIO;
+            G.audioBtns[0] = MkBtn(SW / 2 - 150, 200, 300, 50, "BGM");
+            G.audioBtns[1] = MkBtn(SW / 2 - 150, 270, 300, 50, "FIRING");
+            G.audioBtns[2] = MkBtn(SW / 2 - 150, 340, 300, 50, "EXPLOSION");
+            G.audioBtns[3] = MkBtn(SW / 2 - 150, 410, 300, 50, "HEALTH PICKUP");
+            G.audioBtns[4] = MkBtn(SW / 2 - 150, 500, 300, 50, "BACK");
+            G.audioSel = 0;
+        }
+        else if (G.optSel == 1)
+        {
+            G.screen = SCREEN_MAIN_MENU;
+        }
+    }
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
+    DrawStars();
+    DrawTitle((float)GetTime());
+    const char *title = "OPTIONS";
+    DrawText(title, (SW - MeasureText(title, 40)) / 2, 120, 40, WHITE);
+    for (int i = 0; i < 2; i++)
+        DrawBtn(G.optBtns[i], i == G.optSel);
+    EndDrawing();
+}
+void ScreenAudio(float dt)
+{
+    UpdateStars(dt);
+    if (IsKeyPressed(KEY_DOWN))
+        G.audioSel = (G.audioSel + 1) % 5;
+    if (IsKeyPressed(KEY_UP))
+        G.audioSel = (G.audioSel + 4) % 5;
+    for (int i = 0; i < 5; i++)
+    {
+        if (UpdateBtn(&G.audioBtns[i], dt))
+            G.audioSel = i;
+    }
+    bool enter = IsKeyPressed(KEY_ENTER);
+    for (int i = 0; i < 5; i++)
+    {
+        if (G.audioBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            G.audioSel = i;
+            enter = true;
+        }
+    }
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        G.screen = SCREEN_OPTIONS;
+    }
+    if (enter)
+    {
+        if (G.audioSel == 4)
+        {
+            G.screen = SCREEN_OPTIONS;
+        }
+    }
+    if (G.audioSel == 0)
+    {
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+            G.bgmVolume = Clampf(G.bgmVolume + 0.1f, 0, 1);
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+            G.bgmVolume = Clampf(G.bgmVolume - 0.1f, 0, 1);
+    }
+    else if (G.audioSel == 1)
+    {
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+            G.firingVolume = Clampf(G.firingVolume + 0.1f, 0, 1);
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+            G.firingVolume = Clampf(G.firingVolume - 0.1f, 0, 1);
+    }
+    else if (G.audioSel == 2)
+    {
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+            G.explosionVolume = Clampf(G.explosionVolume + 0.1f, 0, 1);
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+            G.explosionVolume = Clampf(G.explosionVolume - 0.1f, 0, 1);
+    }
+    else if (G.audioSel == 3)
+    {
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+            G.healthPickupVolume = Clampf(G.healthPickupVolume + 0.1f, 0, 1);
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+            G.healthPickupVolume = Clampf(G.healthPickupVolume - 0.1f, 0, 1);
+    }
+    SetMusicVolume(G.bgm, G.bgmVolume);
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
+    DrawStars();
+    DrawTitle((float)GetTime());
+    const char *title = "AUDIO";
+    DrawText(title, (SW - MeasureText(title, 40)) / 2, 80, 40, WHITE);
+    int volX = SW / 2 + 80;
+    DrawText("BGM", SW / 2 - 150 + 20, 200 + 15, 20, G.audioSel == 0 ? GOLD : WHITE);
+    DrawRectangle(volX, 215, (int)(G.bgmVolume * 200), 20, (Color){60, 60, 60, 255});
+    DrawRectangle(volX, 215, (int)(G.bgmVolume * 200), 20, (Color){0, 200, 100, 255});
+    DrawText("FIRING", SW / 2 - 150 + 20, 270 + 15, 20, G.audioSel == 1 ? GOLD : WHITE);
+    DrawRectangle(volX, 285, (int)(G.firingVolume * 200), 20, (Color){60, 60, 60, 255});
+    DrawRectangle(volX, 285, (int)(G.firingVolume * 200), 20, (Color){200, 100, 0, 255});
+    DrawText("EXPLOSION", SW / 2 - 150 + 20, 340 + 15, 20, G.audioSel == 2 ? GOLD : WHITE);
+    DrawRectangle(volX, 355, (int)(G.explosionVolume * 200), 20, (Color){60, 60, 60, 255});
+    DrawRectangle(volX, 355, (int)(G.explosionVolume * 200), 20, (Color){200, 50, 0, 255});
+    DrawText("HEALTH PICKUP", SW / 2 - 150 + 20, 410 + 15, 20, G.audioSel == 3 ? GOLD : WHITE);
+    DrawRectangle(volX, 425, (int)(G.healthPickupVolume * 200), 20, (Color){60, 60, 60, 255});
+    DrawRectangle(volX, 425, (int)(G.healthPickupVolume * 200), 20, (Color){100, 255, 150, 255});
+    for (int i = 0; i < 5; i++)
+        DrawBtn(G.audioBtns[i], i == G.audioSel);
     EndDrawing();
 }

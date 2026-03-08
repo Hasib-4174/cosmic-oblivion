@@ -21,7 +21,9 @@ typedef enum
     SCREEN_SHIP_SELECT,
     SCREEN_GAMEPLAY,
     SCREEN_PAUSE,
-    SCREEN_GAME_OVER
+    SCREEN_GAME_OVER,
+    SCREEN_OPTIONS,
+    SCREEN_AUDIO
 } GameScreen;
 typedef enum
 {
@@ -121,9 +123,20 @@ typedef struct
     float shakeTimer, shakeMag;
     float logoTimer, slowMoTimer;
     ShipType selectedShip;
-    int menuSel, pauseSel, goSel, shipSel;
+    int menuSel, pauseSel, goSel, shipSel, optSel, audioSel;
     bool gameOver;
-    Button menuBtns[3], pauseBtns[3], goBtns[2];
+    float bgmVolume;
+    float firingVolume;
+    float explosionVolume;
+    float healthPickupVolume;
+    Button menuBtns[4], pauseBtns[3], goBtns[2], optBtns[2], audioBtns[5];
+    Sound firingSounds[8];
+    int firingSoundIdx;
+    Sound explosionSounds[8];
+    int explosionSoundIdx;
+    Sound healthPickupSounds[8];
+    int healthPickupSoundIdx;
+    Music bgm;
 } GameState;
 
 #endif

@@ -20,17 +20,27 @@ int main(void)
     int monitor = GetCurrentMonitor();
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
     InitWindow(0, 0, "Cosmic Oblivion");
+    InitAudioDevice();
+    G.bgm = LoadMusicStream("audio/bgm.wav");
+    PlayMusicStream(G.bgm);
     SW = GetScreenWidth();
     SH = GetScreenHeight();
     SetTargetFPS(60);
     SetExitKey(KEY_NULL);
     memset(&G, 0, sizeof(G));
+    G.bgmVolume = 0.5f;
+    G.firingVolume = 0.7f;
+    G.explosionVolume = 0.7f;
+    G.healthPickupVolume = 0.7f;
+    G.bgm = LoadMusicStream("audio/bgm.wav");
+    PlayMusicStream(G.bgm);
     G.screen = SCREEN_LOGO;
     G.highscore = LoadHS();
     InitStars();
     while (!WindowShouldClose())
     {
         float dt = GetFrameTime();
+        UpdateMusicStream(G.bgm);
         switch (G.screen)
         {
         case SCREEN_LOGO:
@@ -61,6 +71,12 @@ int main(void)
             break;
         case SCREEN_GAME_OVER:
             ScreenGameOver(dt);
+            break;
+        case SCREEN_OPTIONS:
+            ScreenOptions(dt);
+            break;
+        case SCREEN_AUDIO:
+            ScreenAudio(dt);
             break;
         }
         if (G.screen == SCREEN_GAMEPLAY)

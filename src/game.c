@@ -12,6 +12,39 @@
 
 extern GameState G;
 
+static void PlayFiringSound(void)
+{
+    G.firingSoundIdx++;
+    if (G.firingSoundIdx >= 8)
+        G.firingSoundIdx = 0;
+    if (G.firingSounds[G.firingSoundIdx].frameCount == 0)
+        G.firingSounds[G.firingSoundIdx] = LoadSound("audio/firing_sound.wav");
+    SetSoundVolume(G.firingSounds[G.firingSoundIdx], G.firingVolume);
+    PlaySound(G.firingSounds[G.firingSoundIdx]);
+}
+
+static void PlayExplosionSound(void)
+{
+    G.explosionSoundIdx++;
+    if (G.explosionSoundIdx >= 8)
+        G.explosionSoundIdx = 0;
+    if (G.explosionSounds[G.explosionSoundIdx].frameCount == 0)
+        G.explosionSounds[G.explosionSoundIdx] = LoadSound("audio/explosion.wav");
+    SetSoundVolume(G.explosionSounds[G.explosionSoundIdx], G.explosionVolume);
+    PlaySound(G.explosionSounds[G.explosionSoundIdx]);
+}
+
+static void PlayHealthPickupSound(void)
+{
+    G.healthPickupSoundIdx++;
+    if (G.healthPickupSoundIdx >= 8)
+        G.healthPickupSoundIdx = 0;
+    if (G.healthPickupSounds[G.healthPickupSoundIdx].frameCount == 0)
+        G.healthPickupSounds[G.healthPickupSoundIdx] = LoadSound("audio/health_pickup.wav");
+    SetSoundVolume(G.healthPickupSounds[G.healthPickupSoundIdx], G.healthPickupVolume);
+    PlaySound(G.healthPickupSounds[G.healthPickupSoundIdx]);
+}
+
 void InitPlayer(void)
 {
     Player *pl = &G.player;
@@ -44,6 +77,9 @@ void InitPlayer(void)
 }
 void InitGame(void)
 {
+    G.firingSoundIdx = -1;
+    G.explosionSoundIdx = -1;
+    G.healthPickupSoundIdx = -1;
     for (int i = 0; i < MAX_BULLETS; i++)
         G.bullets[i].active = false;
     for (int i = 0; i < MAX_METEORS; i++)
@@ -138,6 +174,7 @@ void UpdateGame(float dt)
                         if (!G.bullets[i].active)
                         {
                             G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, 600, true};
+                            PlayFiringSound();
                             break;
                         }
                     }
@@ -152,6 +189,7 @@ void UpdateGame(float dt)
                         if (!G.bullets[i].active)
                         {
                             G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, 550, true};
+                            PlayFiringSound();
                             break;
                         }
                     }
@@ -164,6 +202,7 @@ void UpdateGame(float dt)
                     if (!G.bullets[i].active)
                     {
                         G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, 650, true};
+                        PlayFiringSound();
                         break;
                     }
                 }
@@ -215,6 +254,7 @@ void UpdateGame(float dt)
                 if (G.meteors[mi].hp <= 0)
                 {
                     G.meteors[mi].active = false;
+                    PlayExplosionSound();
                     SpawnP(G.meteors[mi].pos, G.meteors[mi].color, 18, 200, 3.5f);
                     SpawnP(G.meteors[mi].pos, (Color){255, 220, 100, 255}, 8, 160, 2);
                     int bonus = (G.meteors[mi].size == METEOR_LARGE) ? 30 : (G.meteors[mi].size == METEOR_MEDIUM) ? 20
@@ -282,6 +322,7 @@ void UpdateGame(float dt)
                         SaveHS(G.highscore);
                     }
                     G.gameOver = true;
+                    StopMusicStream(G.bgm);
                     G.screen = SCREEN_GAME_OVER;
                     G.goBtns[0] = MkBtn(SW / 2 - 100, 480, 200, 48, "PLAY AGAIN");
                     G.goBtns[1] = MkBtn(SW / 2 - 100, 540, 200, 48, "MAIN MENU");
@@ -301,6 +342,7 @@ void UpdateGame(float dt)
             if (dx * dx + dy * dy < 400)
             {
                 G.healthStars[i].active = false;
+                PlayHealthPickupSound();
                 if (pl->hp < pl->maxHp)
                 {
                     pl->hp++;
