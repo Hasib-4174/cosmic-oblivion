@@ -9,5 +9,7 @@ void InitGame(void);
 void UpdateGame(float dt);
 void DrawGameplay(void);
 void DrawTitle(float t);
+void PlayEnemyShootSound(void);
+void PlayEnemyDestroySound(void);
 
 #endif

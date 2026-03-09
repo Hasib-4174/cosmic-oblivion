@@ -2,6 +2,7 @@
 #include "include/helpers.h"
 #include "include/particles.h"
 #include "include/ship.h"
+#include "include/game.h"
 #include <math.h>
 
 extern GameState G;
@@ -105,6 +106,7 @@ void UpdateEnemies(float dt)
                         }
                     }
                 }
+                PlayEnemyShootSound();
             }
             else if (e->type == SHIP_DESTROYER)
             {
@@ -125,6 +127,7 @@ void UpdateEnemies(float dt)
                         }
                     }
                 }
+                PlayEnemyShootSound();
             }
             else // Interceptor
             {
@@ -140,6 +143,7 @@ void UpdateEnemies(float dt)
                         break;
                     }
                 }
+                PlayEnemyShootSound();
             }
         }
 
