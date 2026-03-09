@@ -10,6 +10,7 @@
 #include "include/shieldpickup.h"
 #include "include/floatingtext.h"
 #include "include/enemy.h"
+#include "include/collision.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -447,13 +448,7 @@ void UpdateGame(float dt)
         {
             if (!G.enemies[ei].active)
                 continue;
-            float dx = G.bullets[bi].pos.x - G.enemies[ei].pos.x;
-            float dy = G.bullets[bi].pos.y - G.enemies[ei].pos.y;
-            float radius = 45.0f;
-            if (G.enemies[ei].type == SHIP_DESTROYER) radius = 60.0f;
-            else if (G.enemies[ei].type == SHIP_TITAN) radius = 80.0f;
-
-            if (dx * dx + dy * dy < radius * radius)
+            if (CheckCircleShipCollision(G.bullets[bi].pos, 5.0f, GetShipHitbox(G.enemies[ei].pos, G.enemies[ei].type, false)))
             {
                 G.bullets[bi].active = false;
                 G.enemies[ei].hp--;
@@ -486,12 +481,7 @@ void UpdateGame(float dt)
         {
             if (!G.bullets[bi].active || !G.bullets[bi].isEnemy)
                 continue;
-            float dx = pl->pos.x - G.bullets[bi].pos.x;
-            float dy = pl->pos.y - G.bullets[bi].pos.y;
-            float radius = 25.0f;
-            if (pl->type == SHIP_DESTROYER) radius = 35.0f;
-            else if (pl->type == SHIP_TITAN) radius = 55.0f;
-            if (dx * dx + dy * dy < radius * radius)
+            if (CheckCircleShipCollision(G.bullets[bi].pos, 5.0f, GetShipHitbox(pl->pos, pl->type, true)))
             {
                 G.bullets[bi].active = false;
                 pl->hp--;
@@ -542,12 +532,7 @@ void UpdateGame(float dt)
         {
             if (!G.meteors[mi].active)
                 continue;
-            float dx = pl->pos.x - G.meteors[mi].pos.x, dy = pl->pos.y - G.meteors[mi].pos.y;
-            float hitRad = 23.0f;
-            if (pl->type == SHIP_DESTROYER) hitRad = 33.0f;
-            else if (pl->type == SHIP_TITAN) hitRad = 53.0f;
-            float tr = G.meteors[mi].radius + hitRad;
-            if (dx * dx + dy * dy < tr * tr)
+            if (CheckCircleShipCollision(G.meteors[mi].pos, G.meteors[mi].radius, GetShipHitbox(pl->pos, pl->type, true)))
             {
                 G.meteors[mi].active = false;
                 pl->hp--;
@@ -602,12 +587,7 @@ void UpdateGame(float dt)
         {
             if (!G.meteors[mi].active)
                 continue;
-            float dx = pl->pos.x - G.meteors[mi].pos.x, dy = pl->pos.y - G.meteors[mi].pos.y;
-            float shieldRad = 35.0f;
-            if (pl->type == SHIP_DESTROYER) shieldRad = 45.0f;
-            else if (pl->type == SHIP_TITAN) shieldRad = 65.0f;
-            float tr = G.meteors[mi].radius + shieldRad;
-            if (dx * dx + dy * dy < tr * tr)
+            if (CheckCircleShipCollision(G.meteors[mi].pos, G.meteors[mi].radius + 15.0f, GetShipHitbox(pl->pos, pl->type, true)))
             {
                 G.meteors[mi].active = false;
                 PlayExplosionSound();
