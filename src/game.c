@@ -428,9 +428,9 @@ void UpdateGame(float dt)
                 continue;
             float dx = G.bullets[bi].pos.x - G.enemies[ei].pos.x;
             float dy = G.bullets[bi].pos.y - G.enemies[ei].pos.y;
-            float radius = 32.0f;
-            if (G.enemies[ei].type == SHIP_DESTROYER) radius = 45.0f;
-            else if (G.enemies[ei].type == SHIP_TITAN) radius = 70.0f;
+            float radius = 45.0f;
+            if (G.enemies[ei].type == SHIP_DESTROYER) radius = 60.0f;
+            else if (G.enemies[ei].type == SHIP_TITAN) radius = 80.0f;
 
             if (dx * dx + dy * dy < radius * radius)
             {
@@ -466,7 +466,10 @@ void UpdateGame(float dt)
                 continue;
             float dx = pl->pos.x - G.bullets[bi].pos.x;
             float dy = pl->pos.y - G.bullets[bi].pos.y;
-            if (dx * dx + dy * dy < 20 * 20)
+            float radius = 25.0f;
+            if (pl->type == SHIP_DESTROYER) radius = 35.0f;
+            else if (pl->type == SHIP_TITAN) radius = 55.0f;
+            if (dx * dx + dy * dy < radius * radius)
             {
                 G.bullets[bi].active = false;
                 pl->hp--;
@@ -518,7 +521,11 @@ void UpdateGame(float dt)
             if (!G.meteors[mi].active)
                 continue;
             float dx = pl->pos.x - G.meteors[mi].pos.x, dy = pl->pos.y - G.meteors[mi].pos.y;
-            if (dx * dx + dy * dy < (G.meteors[mi].radius + 18) * (G.meteors[mi].radius + 18))
+            float hitRad = 23.0f;
+            if (pl->type == SHIP_DESTROYER) hitRad = 33.0f;
+            else if (pl->type == SHIP_TITAN) hitRad = 53.0f;
+            float tr = G.meteors[mi].radius + hitRad;
+            if (dx * dx + dy * dy < tr * tr)
             {
                 G.meteors[mi].active = false;
                 pl->hp--;
@@ -574,7 +581,11 @@ void UpdateGame(float dt)
             if (!G.meteors[mi].active)
                 continue;
             float dx = pl->pos.x - G.meteors[mi].pos.x, dy = pl->pos.y - G.meteors[mi].pos.y;
-            if (dx * dx + dy * dy < (G.meteors[mi].radius + 22) * (G.meteors[mi].radius + 22))
+            float shieldRad = 35.0f;
+            if (pl->type == SHIP_DESTROYER) shieldRad = 45.0f;
+            else if (pl->type == SHIP_TITAN) shieldRad = 65.0f;
+            float tr = G.meteors[mi].radius + shieldRad;
+            if (dx * dx + dy * dy < tr * tr)
             {
                 G.meteors[mi].active = false;
                 PlayExplosionSound();
@@ -593,7 +604,10 @@ void UpdateGame(float dt)
             if (!G.healthStars[i].active)
                 continue;
             float dx = pl->pos.x - G.healthStars[i].pos.x, dy = pl->pos.y - G.healthStars[i].pos.y;
-            if (dx * dx + dy * dy < 400)
+            float collectRad = 30.0f;
+            if (pl->type == SHIP_DESTROYER) collectRad = 45.0f;
+            else if (pl->type == SHIP_TITAN) collectRad = 65.0f;
+            if (dx * dx + dy * dy < collectRad * collectRad)
             {
                 G.healthStars[i].active = false;
                 PlayHealthPickupSound();
@@ -618,7 +632,10 @@ void UpdateGame(float dt)
             if (!G.shieldPickups[i].active)
                 continue;
             float dx = pl->pos.x - G.shieldPickups[i].pos.x, dy = pl->pos.y - G.shieldPickups[i].pos.y;
-            if (dx * dx + dy * dy < 400)
+            float collectRad = 30.0f;
+            if (pl->type == SHIP_DESTROYER) collectRad = 45.0f;
+            else if (pl->type == SHIP_TITAN) collectRad = 65.0f;
+            if (dx * dx + dy * dy < collectRad * collectRad)
             {
                 G.shieldPickups[i].active = false;
                 PlayShieldPickupSound();
@@ -700,7 +717,10 @@ void DrawGameplay(void)
             float t = (float)GetTime();
             float pulse = 0.7f + 0.3f * sinf(t * 6.0f);
             unsigned char sa = (unsigned char)(pulse * 100);
-            float radius = 32.0f + sinf(t * 4.0f) * 3.0f;
+            float baseRad = 38.0f;
+            if (G.player.type == SHIP_DESTROYER) baseRad = 55.0f;
+            else if (G.player.type == SHIP_TITAN) baseRad = 75.0f;
+            float radius = baseRad + sinf(t * 4.0f) * 3.0f;
             DrawCircleV(G.player.pos, radius + 4, CAlpha((Color){50, 150, 255, 255}, (unsigned char)(sa / 3)));
             DrawCircleV(G.player.pos, radius, CAlpha((Color){80, 200, 255, 255}, (unsigned char)(sa / 2)));
             DrawCircleLines((int)G.player.pos.x, (int)G.player.pos.y, radius, CAlpha((Color){150, 220, 255, 255}, sa));
@@ -710,8 +730,11 @@ void DrawGameplay(void)
         else if (G.player.shieldTimer > 0)
         {
             unsigned char sa = (unsigned char)(G.player.shieldTimer / 1.0f * 120);
-            DrawCircleLines((int)G.player.pos.x, (int)G.player.pos.y, 28, CAlpha(SKYBLUE, sa));
-            DrawCircleLines((int)G.player.pos.x, (int)G.player.pos.y, 30, CAlpha(WHITE, (unsigned char)(sa / 2)));
+            float baseRad = 36.0f;
+            if (G.player.type == SHIP_DESTROYER) baseRad = 53.0f;
+            else if (G.player.type == SHIP_TITAN) baseRad = 73.0f;
+            DrawCircleLines((int)G.player.pos.x, (int)G.player.pos.y, baseRad, CAlpha(SKYBLUE, sa));
+            DrawCircleLines((int)G.player.pos.x, (int)G.player.pos.y, baseRad + 2, CAlpha(WHITE, (unsigned char)(sa / 2)));
         }
     }
     EndMode2D();
