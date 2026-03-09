@@ -3,19 +3,31 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Wpedantic -std=c99 -I.
 LDFLAGS = -lraylib -lm -lpthread -ldl -lrt -lX11
+
+BUILD_DIR = build
+BIN_DIR = out
+
 SRC = $(wildcard src/*.c)
-OBJ = $(SRC:.c=.o)
-TARGET = cosmic
+OBJ = $(patsubst src/%.c, $(BUILD_DIR)/%.o, $(SRC))
+DEP = $(OBJ:.o=.d)
+
+TARGET = $(BIN_DIR)/cosmic
 
 .PHONY: all clean debug release lint test run
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ)
+$(TARGET): $(OBJ) | $(BIN_DIR)
 	$(CC) $(OBJ) $(LDFLAGS) -o $@
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(BUILD_DIR)/%.o: src/%.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
 
 debug: CFLAGS += -g -O0
 debug: $(TARGET)
@@ -24,7 +36,7 @@ release: CFLAGS += -O2 -DNDEBUG
 release: $(TARGET)
 
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
 lint:
 	cppcheck --enable=all --std=c99 --platform=unix64 \
@@ -36,3 +48,5 @@ analyze:
 
 run: $(TARGET)
 	./$(TARGET)
+
+-include $(DEP)
