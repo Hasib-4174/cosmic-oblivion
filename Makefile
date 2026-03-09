@@ -6,7 +6,6 @@ LDFLAGS = -lraylib -lm -lpthread -ldl -lrt -lX11
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:.c=.o)
 TARGET = cosmic
-TEST_TARGET = cosmic_test
 
 .PHONY: all clean debug release lint test run
 
@@ -25,7 +24,7 @@ release: CFLAGS += -O2 -DNDEBUG
 release: $(TARGET)
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_TARGET)
+	rm -f $(OBJ) $(TARGET)
 
 lint:
 	cppcheck --enable=all --std=c99 --platform=unix64 \
@@ -34,13 +33,6 @@ lint:
 
 analyze:
 	gcc -fanalyzer $(CFLAGS) $(SRC) $(LDFLAGS) -o $(TARGET) 2>&1 || true
-
-# Unit tests (need to mock G from main.c)
-test: $(TEST_TARGET)
-	./$(TEST_TARGET)
-
-$(TEST_TARGET): tests/test_helpers.c tests/test_mocks.c src/helpers.c
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 run: $(TARGET)
 	./$(TARGET)

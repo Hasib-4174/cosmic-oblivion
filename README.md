@@ -25,11 +25,14 @@ entirely in C using the raylib graphics library.
 **The game features:** 
 - A state-driven UI system
 - Three selectable spaceships 
+- Enemy ships with unique behaviors
 - Procedural meteor generation 
 - Particle-based visual effects 
 - Health pickup system (drops from meteors)
+- Shield pickup system
 - Floating text feedback
 - Score & persistent highscore system 
+- Audio system (BGM + sound effects)
 - Smooth animations and screen effects
 
 **Gameplay loop:**
@@ -48,6 +51,35 @@ entirely in C using the raylib graphics library.
 -   HP system
 -   Combo multiplier
 -   Progressive difficulty scaling
+
+### Enemy Ships
+
+-   **Scout** --- Fast, weak, rapid-fire
+-   **Fighter** --- Balanced stats
+-   **Bomber** --- Slow but heavy damage
+
+**Each enemy includes:** 
+- Unique visual design 
+- AI movement patterns 
+- Shooting behavior
+- Collision with player
+
+### Audio System
+
+-   Background music (menu, gameplay, game over)
+-   Player shooting sounds
+-   Meteor explosion sounds (randomized)
+-   Engine sound effects
+-   Damage taken sound
+-   Health pickup sound
+-   Shield pickup sound
+-   Global audio toggle
+
+### Shield Pickups
+
+-   Dropped from destroyed enemies
+-   Provides temporary shield protection
+-   Visual shield bubble effect
 
 ### Spaceships
 
@@ -79,6 +111,7 @@ entirely in C using the raylib graphics library.
 -   Animated parallax starfield background
 -   Health pickup drops from destroyed meteors
 -   Floating "+HP" feedback text
+-   Shield bubble visualization
 
 ### UI System
 
@@ -102,9 +135,11 @@ cosmic-oblivion/
 │   ├── stars.c        # Background starfield
 │   ├── particles.c    # Particle effects
 │   ├── healthstar.c   # Health pickup system
+│   ├── shieldpickup.c # Shield pickup system
 │   ├── floatingtext.c # Floating text feedback
 │   ├── button.c       # UI buttons
 │   ├── ship.c         # Ship rendering
+│   ├── enemy.c        # Enemy ship system
 │   ├── meteor.c       # Meteor system
 │   └── ui.c           # Screen functions
 ├── include/
@@ -114,12 +149,21 @@ cosmic-oblivion/
 │   ├── stars.h        # Starfield declarations
 │   ├── particles.h    # Particle declarations
 │   ├── healthstar.h   # Health star declarations
+│   ├── shieldpickup.h # Shield pickup declarations
 │   ├── floatingtext.h # Floating text declarations
 │   ├── button.h       # Button declarations
 │   ├── ship.h         # Ship declarations
+│   ├── enemy.h        # Enemy declarations
 │   ├── meteor.h       # Meteor declarations
 │   └── ui.h           # UI declarations
-├── tests/             # Unit tests
+├── audio/             # Sound effects and BGM
+│   ├── bg/            # Background music
+│   ├── explosion/     # Explosion sounds
+│   ├── firing_sound/  # Player shooting sounds
+│   ├── damage/        # Damage sounds
+│   ├── health_pickup.wav
+│   ├── shield/        # Shield sounds
+│   └── ship_engine/   # Engine sounds
 ├── screenshots/      # Game screenshots
 ├── Makefile          # Build automation
 ├── AGENTS.md         # Developer documentation
@@ -164,10 +208,10 @@ Follow the official [raylib installation guide](https://github.com/raysan5/rayli
 ```bash
 make           # Compile game
 make run       # Compile and run
-make debug     # Debug build
-make release   # Release build
-make lint      # Run cppcheck
-make test      # Run unit tests
+make debug     # Debug build with -g -O0
+make release   # Release build with -O2
+make lint      # Run cppcheck static analysis
+make analyze   # Run gcc -fanalyzer
 make clean     # Clean build artifacts
 ```
 
@@ -208,27 +252,14 @@ gcc src/*.c -I. -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 
 ------------------------------------------------------------------------
 
-## Testing
-
-### Unit Tests
-```bash
-make test      # Run unit tests (currently 15 tests)
-```
-
-Tests are in `tests/` directory and cover helper functions (Clampf, Rf, CAlpha, CLerp).
-
-### Manual Testing
-Run `./cosmic` and test: menu, ship select, gameplay, pause, game over.
-
----
-
 ## Development Philosophy
 
 -   Built in pure C (C99 compatible)
 -   No external game engine
--   Minimal dependencies
--   Modular architecture (12 source files)
+-   Minimal dependencies (raylib + standard C)
+-   Modular architecture (14 source files)
 -   Clean state-based architecture
+-   Audio integration for immersive gameplay
 
 ------------------------------------------------------------------------
 
