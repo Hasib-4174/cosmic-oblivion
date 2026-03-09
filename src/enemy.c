@@ -3,6 +3,7 @@
 #include "include/particles.h"
 #include "include/ship.h"
 #include "include/game.h"
+#include "include/collision.h"
 #include <math.h>
 
 extern GameState G;
@@ -163,13 +164,24 @@ void UpdateEnemies(float dt)
             float dx = e->pos.x - other->pos.x;
             float dy = e->pos.y - other->pos.y;
             float distSq = dx * dx + dy * dy;
-            float minDist = (e->type == SHIP_TITAN || other->type == SHIP_TITAN) ? 100.0f : 60.0f;
+            
+            // 1. Soft distancing (flocking)
+            float minDist = (e->type == SHIP_TITAN || other->type == SHIP_TITAN) ? 110.0f : 75.0f;
             if (distSq < minDist * minDist && distSq > 0.01f)
             {
                 float dist = sqrtf(distSq);
                 float force = (minDist - dist) / minDist;
-                e->vel.x += (dx / dist) * force * dt * 400.0f;
-                e->vel.y += (dy / dist) * force * dt * 400.0f;
+                e->vel.x += (dx / dist) * force * dt * 300.0f;
+                e->vel.y += (dy / dist) * force * dt * 300.0f;
+            }
+
+            // 2. Hard hull-to-hull separation (Precision)
+            if (CheckShipShipCollision(GetShipHitbox(e->pos, e->type, false), GetShipHitbox(other->pos, other->type, false)))
+            {
+                if (distSq < 0.01f) { dx = Rf(-1,1); dy = Rf(-1,1); distSq = 1.0f; }
+                float dist = sqrtf(distSq);
+                e->vel.x += (dx / dist) * dt * 800.0f;
+                e->vel.y += (dy / dist) * dt * 800.0f;
             }
         }
     }
