@@ -29,28 +29,34 @@ void SpawnEnemy(void)
         e->vel = (Vector2){0, 0};
         e->rotation = 180.0f; // Facing down
 
+        // Difficulty scaling based on time
+        float diffTime = G.gameTime;
+        float speedScale = 1.0f + diffTime * 0.005f; // +5% speed per 10s
+        float hpBonus = floorf(diffTime / 30.0f);    // +1 HP every 30s
+        float coolBonus = diffTime * 0.003f;         // Fire slightly faster over time
+
         // Weighted spawning
         int roll = GetRandomValue(0, 99);
         if (roll < 10) // 10% Titan
         {
             e->type = SHIP_TITAN;
-            e->hp = 12;
-            e->speed = Rf(30, 50);
-            e->fireCooldown = Rf(2.5f, 4.0f);
+            e->hp = 12 + (int)hpBonus;
+            e->speed = Rf(30, 50) * speedScale;
+            e->fireCooldown = fmaxf(1.0f, Rf(2.5f, 4.0f) - coolBonus);
         }
         else if (roll < 30) // 20% Destroyer
         {
             e->type = SHIP_DESTROYER;
-            e->hp = 5;
-            e->speed = Rf(60, 90);
-            e->fireCooldown = Rf(1.0f, 2.0f);
+            e->hp = 5 + (int)hpBonus;
+            e->speed = Rf(60, 90) * speedScale;
+            e->fireCooldown = fmaxf(0.5f, Rf(1.0f, 2.0f) - coolBonus);
         }
         else // 70% Interceptor
         {
             e->type = SHIP_INTERCEPTOR;
-            e->hp = 2;
-            e->speed = Rf(100, 160);
-            e->fireCooldown = Rf(1.5f, 3.0f);
+            e->hp = 2 + (int)hpBonus;
+            e->speed = Rf(100, 160) * speedScale;
+            e->fireCooldown = fmaxf(0.8f, Rf(1.5f, 3.0f) - coolBonus);
         }
         return;
     }
@@ -73,13 +79,52 @@ void UpdateEnemies(float dt)
 
         Vector2 dir = {target.x - e->pos.x, target.y - e->pos.y};
         float dist = sqrtf(dir.x * dir.x + dir.y * dir.y);
+        Vector2 force = {0};
+
         if (dist > 5.0f)
         {
             dir.x /= dist;
             dir.y /= dist;
-            e->vel.x += (dir.x * e->speed - e->vel.x) * dt * 3.0f;
-            e->vel.y += (dir.y * e->speed - e->vel.y) * dt * 3.0f;
+            force.x = dir.x * e->speed;
+            force.y = dir.y * e->speed;
         }
+
+        // Bullet Evasion Logic
+        float timeEvasionBonus = G.gameTime * 0.5f; // +50px radius per 100s
+        float timeWidthBonus = G.gameTime * 0.2f;   // +20px width per 100s
+        float evasionRadius = ((e->type == SHIP_INTERCEPTOR) ? 150.0f : 
+                              (e->type == SHIP_DESTROYER) ? 100.0f : 80.0f) + timeEvasionBonus; 
+        float evasionWidth = 60.0f + timeWidthBonus;
+        float dodgeForce = (e->type == SHIP_INTERCEPTOR) ? 500.0f : 
+                           (e->type == SHIP_DESTROYER) ? 300.0f : 150.0f;
+
+        for (int b = 0; b < MAX_BULLETS; b++)
+        {
+            if (!G.bullets[b].active || G.bullets[b].isEnemy)
+                continue;
+
+            // Check if bullet is approaching from below
+            float dx = e->pos.x - G.bullets[b].pos.x;
+            float dy = e->pos.y - G.bullets[b].pos.y;
+            
+            // Only care about bullets below the enemy and not too far horizontally
+            if (dy < 0 && dy > -evasionRadius && fabsf(dx) < evasionWidth)
+            {
+                // Steer away based on horizontal position
+                if (dx > 0)
+                {
+                    force.x += dodgeForce; // Move right
+                }
+                else
+                {
+                    force.x -= dodgeForce; // Move left
+                }
+                break; // React to one bullet at a time
+            }
+        }
+
+        e->vel.x += (force.x - e->vel.x) * dt * 3.0f;
+        e->vel.y += (force.y - e->vel.y) * dt * 3.0f;
 
         e->pos.x += e->vel.x * dt;
         e->pos.y += e->vel.y * dt;
