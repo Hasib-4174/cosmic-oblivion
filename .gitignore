@@ -1,10 +1,6 @@
-highscore.txt
-
-# Compiled binaries
-cosmic
-cosmic_debug
-cosmic_release
-cosmic_test
+# Build artifacts
+build/
+out/
 
 # Editor/IDE
 .vscode/
@@ -17,6 +13,5 @@ cosmic_test
 .DS_Store
 Thumbs.db
 
-# Build artifacts
-*.o
-*.a
+# Game data
+highscore.txt
