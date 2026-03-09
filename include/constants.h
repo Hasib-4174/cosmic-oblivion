@@ -143,7 +143,7 @@ typedef struct
     float meteorTimer, meteorRate, meteorSpeedMul;
     float enemyTimer, enemyRate;
     float scoreTimer, gameTime;
-    int score, highscore, meteorsDestroyed;
+    int score, highscore, meteorsDestroyed, enemiesDestroyed;
     float comboTimer, comboMultiplier;
     float shakeTimer, shakeMag;
     float logoTimer, slowMoTimer;

@@ -181,6 +181,7 @@ void InitGame(void)
     G.gameTime = 0;
     G.score = 0;
     G.meteorsDestroyed = 0;
+    G.enemiesDestroyed = 0;
     G.comboTimer = 0;
     G.comboMultiplier = 1.0f;
     G.shakeTimer = 0;
@@ -363,9 +364,10 @@ void UpdateGame(float dt)
     UpdateEnemies(dt);
 
     G.enemyTimer += dt;
-    if (G.enemyTimer >= G.enemyRate)
+    float currentEnemyRate = Clampf(G.enemyRate - G.gameTime * 0.015f, 1.5f, G.enemyRate);
+    if (G.enemyTimer >= currentEnemyRate)
     {
-        G.enemyTimer -= G.enemyRate;
+        G.enemyTimer -= currentEnemyRate;
         SpawnEnemy();
     }
     for (int i = 0; i < MAX_METEORS; i++)
@@ -465,6 +467,20 @@ void UpdateGame(float dt)
                     else if (G.enemies[ei].type == SHIP_TITAN) points = 1500;
                     
                     G.score += points;
+                    G.enemiesDestroyed++;
+                    
+                    // Drop health or shield pickup
+                    int dropChance = (G.enemies[ei].type == SHIP_TITAN) ? 40 : 
+                                     (G.enemies[ei].type == SHIP_DESTROYER) ? 15 : 5;
+                    
+                    if (GetRandomValue(0, 99) < dropChance)
+                    {
+                        if (GetRandomValue(0, 1) == 0)
+                            SpawnHealthStarAt(G.enemies[ei].pos);
+                        else
+                            SpawnShieldPickupAt(G.enemies[ei].pos);
+                    }
+
                     char buf[16];
                     sprintf(buf, "+%d", points);
                     SpawnFloatingText(G.enemies[ei].pos, buf, GOLD);

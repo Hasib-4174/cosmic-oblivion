@@ -470,6 +470,7 @@ void ScreenGameOver(float dt)
     DrawText(TextFormat("Score: %d", G.score), (SW - MeasureText(TextFormat("Score: %d", G.score), 30)) / 2, 240, 30, WHITE);
     DrawText(TextFormat("High Score: %d", G.highscore), (SW - MeasureText(TextFormat("High Score: %d", G.highscore), 24)) / 2, 280, 24, GOLD);
     DrawText(TextFormat("Meteors Destroyed: %d", G.meteorsDestroyed), (SW - MeasureText(TextFormat("Meteors Destroyed: %d", G.meteorsDestroyed), 20)) / 2, 320, 20, LIGHTGRAY);
+    DrawText(TextFormat("Enemies Defeated: %d", G.enemiesDestroyed), (SW - MeasureText(TextFormat("Enemies Defeated: %d", G.enemiesDestroyed), 20)) / 2, 350, 20, RED);
     for (int i = 0; i < 2; i++)
         DrawBtn(G.goBtns[i], i == G.goSel);
     DrawAudioToggle();
