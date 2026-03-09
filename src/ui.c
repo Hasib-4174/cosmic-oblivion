@@ -11,7 +11,25 @@
 
 extern GameState G;
 
-/* ---- Draw audio toggle icon (top-left, every screen except logo) ---- */
+/* ---- Helper: play button hover sound (only on focus change) ---- */
+static void PlayBtnHover(void)
+{
+    if (!G.audioEnabled)
+        return;
+    SetSoundVolume(G.sfxButtonHover, G.uiVolume);
+    PlaySound(G.sfxButtonHover);
+}
+
+/* ---- Helper: play button select sound ---- */
+static void PlayBtnSelect(void)
+{
+    if (!G.audioEnabled)
+        return;
+    SetSoundVolume(G.sfxButtonSelect, G.uiVolume);
+    PlaySound(G.sfxButtonSelect);
+}
+
+/* ---- Draw audio toggle icon (top-right, every screen except logo) ---- */
 void DrawAudioToggle(void)
 {
     int x = SW - 60, y = 10;
@@ -34,43 +52,102 @@ void DrawAudioToggle(void)
     DrawText(icon, x - 2, y + 22, 10, col);
 }
 
-/* ---- Slider Drawing/Interaction Helper ---- */
+/* ---- Slider Drawing/Interaction Helper (polished) ---- */
 static float DrawSlider(int x, int y, int w, float value, Color fillColor, bool selected, const char *label)
 {
-    int labelW = MeasureText(label, 20);
-    (void)labelW;
+    /* Label on the left */
     DrawText(label, x, y + 2, 20, selected ? GOLD : WHITE);
 
     int sliderX = x + 250;
     int sliderW = w;
-    int sliderH = 16;
-    int sliderY = y + 4;
+    int sliderH = 12;
+    int sliderY = y + 6;
 
-    /* Background track */
-    DrawRectangleRounded((Rectangle){sliderX, sliderY, sliderW, sliderH}, 0.5f, 4, (Color){40, 40, 60, 200});
-    /* Filled portion */
+    /* Background track with rounded ends */
+    DrawRectangleRounded((Rectangle){sliderX, sliderY, sliderW, sliderH}, 0.5f, 8, (Color){30, 30, 50, 220});
+
+    /* Filled portion with gradient feel */
     int fillW = (int)(value * sliderW);
-    if (fillW > 0)
-        DrawRectangleRounded((Rectangle){sliderX, sliderY, fillW, sliderH}, 0.5f, 4, fillColor);
-    /* Border */
-    DrawRectangleRoundedLinesEx((Rectangle){sliderX, sliderY, sliderW, sliderH}, 0.5f, 4, 1, selected ? GOLD : (Color){100, 120, 160, 200});
+    if (fillW > 2)
+    {
+        Color fillDark = {(unsigned char)(fillColor.r * 0.6f), (unsigned char)(fillColor.g * 0.6f), (unsigned char)(fillColor.b * 0.6f), 255};
+        (void)fillDark;
+        DrawRectangleRounded((Rectangle){sliderX, sliderY, fillW, sliderH}, 0.5f, 8, fillColor);
+        /* Inner highlight strip */
+        if (fillW > 6)
+            DrawRectangleRounded((Rectangle){sliderX + 2, sliderY + 2, fillW - 4, sliderH / 2 - 1}, 0.5f, 4,
+                                 CAlpha(WHITE, 40));
+    }
+
+    /* Border — subtle glow when selected */
+    if (selected)
+    {
+        DrawRectangleRounded((Rectangle){sliderX - 2, sliderY - 2, sliderW + 4, sliderH + 4}, 0.5f, 8,
+                             CAlpha(GOLD, 40));
+        DrawRectangleRoundedLinesEx((Rectangle){sliderX, sliderY, sliderW, sliderH}, 0.5f, 8, 1.5f, GOLD);
+    }
+    else
+    {
+        DrawRectangleRoundedLinesEx((Rectangle){sliderX, sliderY, sliderW, sliderH}, 0.5f, 8, 1,
+                                   (Color){70, 80, 110, 180});
+    }
+
     /* Knob */
     int knobX = sliderX + fillW;
-    DrawCircleV((Vector2){knobX, sliderY + sliderH / 2}, 8, selected ? GOLD : WHITE);
-    /* Value text */
-    DrawText(TextFormat("%d%%", (int)(value * 100)), sliderX + sliderW + 12, y + 2, 18, (Color){180, 200, 220, 255});
+    int knobY = sliderY + sliderH / 2;
+    if (selected)
+    {
+        DrawCircleV((Vector2){knobX, knobY}, 10, CAlpha(GOLD, 60));
+        DrawCircleV((Vector2){knobX, knobY}, 7, GOLD);
+        DrawCircleV((Vector2){knobX, knobY}, 4, WHITE);
+    }
+    else
+    {
+        DrawCircleV((Vector2){knobX, knobY}, 7, (Color){160, 170, 200, 255});
+        DrawCircleV((Vector2){knobX, knobY}, 4, WHITE);
+    }
+
+    /* Percentage text — clean monospaced look */
+    int pct = (int)(value * 100);
+    const char *pctText = TextFormat("%3d%%", pct);
+    DrawText(pctText, sliderX + sliderW + 16, y + 2, 18, selected ? GOLD : (Color){160, 180, 200, 255});
 
     /* Mouse interaction */
     Vector2 mouse = GetMousePosition();
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
     {
         if (mouse.x >= sliderX && mouse.x <= sliderX + sliderW &&
-            mouse.y >= sliderY - 10 && mouse.y <= sliderY + sliderH + 10)
+            mouse.y >= sliderY - 12 && mouse.y <= sliderY + sliderH + 12)
         {
             value = Clampf((mouse.x - sliderX) / (float)sliderW, 0, 1);
         }
     }
     return value;
+}
+
+/* ---- Styled section title (replaces DrawTitle for settings screens) ---- */
+static void DrawSettingsTitle(const char *title)
+{
+    float t = (float)GetTime();
+    int tw = MeasureText(title, 48);
+    float y = 60 + sinf(t * 1.5f) * 6;
+    float hue = fmodf(t * 30, 360);
+    Color c1 = ColorFromHSV(hue, 0.7f, 1.0f);
+    Color c2 = ColorFromHSV(hue + 40, 0.6f, 1.0f);
+
+    /* Shadow layers */
+    DrawText(title, (int)(SW / 2 - tw / 2 + 2), (int)(y + 2), 48, CAlpha(c1, 40));
+    DrawText(title, (int)(SW / 2 - tw / 2 - 1), (int)(y - 1), 48, CAlpha(c2, 60));
+    /* Main text */
+    DrawText(title, (int)(SW / 2 - tw / 2), (int)(y), 48, WHITE);
+
+    /* Subtle underline decoration */
+    float lineAlpha = 0.4f + 0.2f * sinf(t * 2.0f);
+    int lineW = tw + 40;
+    int lineX = SW / 2 - lineW / 2;
+    int lineY = (int)(y + 56);
+    DrawRectangle(lineX, lineY, lineW, 2, CAlpha(c1, (unsigned char)(lineAlpha * 255)));
+    DrawRectangle(lineX + 10, lineY + 4, lineW - 20, 1, CAlpha(c2, (unsigned char)(lineAlpha * 150)));
 }
 
 void ScreenLogo(float dt)
@@ -88,12 +165,14 @@ void ScreenLogo(float dt)
         G.screen = SCREEN_MAIN_MENU;
         if (G.audioEnabled)
         {
-            PlayMusicStream(G.bgm);
+            PlayMusicStream(G.bgmMenu);
+            SetMusicVolume(G.bgmMenu, G.bgmVolume);
         }
         G.menuBtns[0] = MkBtn(SW / 2 - 110, 300, 220, 50, "PLAY GAME");
         G.menuBtns[1] = MkBtn(SW / 2 - 110, 390, 220, 50, "OPTIONS");
         G.menuBtns[2] = MkBtn(SW / 2 - 110, 480, 220, 50, "EXIT");
         G.menuSel = 0;
+        G.prevMenuSel = -1;
     }
 }
 void ScreenMenu(float dt)
@@ -102,19 +181,25 @@ void ScreenMenu(float dt)
     UpdateParticles(dt);
     if (GetRandomValue(0, 100) < 8)
         SpawnP((Vector2){Rf(0, SW), Rf(0, SH)}, CAlpha((Color){60, 100, 200, 255}, 120), 1, 20, 1.5f);
-    if (IsKeyPressed(KEY_DOWN))
-    {
+
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
         G.menuSel = (G.menuSel + 1) % 3;
-    }
-    if (IsKeyPressed(KEY_UP))
-    {
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
         G.menuSel = (G.menuSel + 2) % 3;
-    }
+
+    /* Update buttons and track mouse hover → selection */
     for (int i = 0; i < 3; i++)
     {
-        if (UpdateBtn(&G.menuBtns[i], dt))
+        UpdateBtn(&G.menuBtns[i], dt);
+        if (G.menuBtns[i].hovered)
             G.menuSel = i;
     }
+
+    /* Play hover sound on selection change */
+    if (G.prevMenuSel >= 0 && G.prevMenuSel != G.menuSel)
+        PlayBtnHover();
+    G.prevMenuSel = G.menuSel;
+
     bool enter = IsKeyPressed(KEY_ENTER);
     for (int i = 0; i < 3; i++)
     {
@@ -126,10 +211,12 @@ void ScreenMenu(float dt)
     }
     if (enter)
     {
+        PlayBtnSelect();
         if (G.menuSel == 0)
         {
             G.screen = SCREEN_SHIP_SELECT;
             G.shipSel = G.selectedShip;
+            G.prevShipSel = -1;
         }
         else if (G.menuSel == 1)
         {
@@ -137,6 +224,7 @@ void ScreenMenu(float dt)
             G.optBtns[0] = MkBtn(SW / 2 - 110, 320, 220, 50, "AUDIO");
             G.optBtns[1] = MkBtn(SW / 2 - 110, 390, 220, 50, "BACK");
             G.optSel = 0;
+            G.prevOptSel = -1;
         }
         else if (G.menuSel == 2)
         {
@@ -157,19 +245,38 @@ void ScreenMenu(float dt)
 void ScreenShipSelect(float dt)
 {
     UpdateStars(dt);
+    int oldSel = G.shipSel;
     if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
         G.shipSel = (G.shipSel + 2) % 3;
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
         G.shipSel = (G.shipSel + 1) % 3;
+
+    /* Play hover sound on ship change */
+    if (G.shipSel != oldSel)
+    {
+        if (G.prevShipSel >= 0)
+            PlayBtnHover();
+        G.prevShipSel = G.shipSel;
+    }
+
     if (IsKeyPressed(KEY_ENTER))
     {
+        PlayBtnSelect();
         G.selectedShip = G.shipSel;
+        /* Stop menu BGM, start gameplay BGM */
+        StopMusicStream(G.bgmMenu);
+        if (G.audioEnabled)
+        {
+            PlayMusicStream(G.bgmGameplay);
+            SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+        }
         InitGame();
         G.screen = SCREEN_GAMEPLAY;
     }
     if (IsKeyPressed(KEY_ESCAPE))
     {
         G.screen = SCREEN_MAIN_MENU;
+        G.prevMenuSel = -1;
     }
     BeginDrawing();
     ClearBackground((Color){4, 4, 16, 255});
@@ -208,13 +315,24 @@ void ScreenShipSelect(float dt)
 void ScreenPause(float dt)
 {
     (void)dt;
-    if (IsKeyPressed(KEY_DOWN))
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
         G.pauseSel = (G.pauseSel + 1) % 3;
-    if (IsKeyPressed(KEY_UP))
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
         G.pauseSel = (G.pauseSel + 2) % 3;
+
+    /* Update buttons and track mouse hover → selection */
     for (int i = 0; i < 3; i++)
-        if (UpdateBtn(&G.pauseBtns[i], dt) && G.pauseBtns[i].hovered)
+    {
+        UpdateBtn(&G.pauseBtns[i], dt);
+        if (G.pauseBtns[i].hovered)
             G.pauseSel = i;
+    }
+
+    /* Play hover sound on focus change */
+    if (G.prevPauseSel >= 0 && G.prevPauseSel != G.pauseSel)
+        PlayBtnHover();
+    G.prevPauseSel = G.pauseSel;
+
     bool enter = IsKeyPressed(KEY_ENTER);
     bool escape = IsKeyPressed(KEY_ESCAPE);
     for (int i = 0; i < 3; i++)
@@ -227,20 +345,22 @@ void ScreenPause(float dt)
     }
     if (enter)
     {
+        PlayBtnSelect();
         if (G.pauseSel == 0)
         {
             G.screen = SCREEN_GAMEPLAY;
         }
         else if (G.pauseSel == 1)
         {
-            /* Return to main menu: restart BGM */
-            StopMusicStream(G.bgm);
+            /* Return to main menu: stop gameplay BGM, start menu BGM */
+            StopMusicStream(G.bgmGameplay);
             if (G.audioEnabled)
             {
-                PlayMusicStream(G.bgm);
-                SetMusicVolume(G.bgm, G.bgmVolume);
+                PlayMusicStream(G.bgmMenu);
+                SetMusicVolume(G.bgmMenu, G.bgmVolume);
             }
             G.screen = SCREEN_MAIN_MENU;
+            G.prevMenuSel = -1;
         }
         else
             CloseWindow();
@@ -281,13 +401,24 @@ void ScreenGameOver(float dt)
 {
     UpdateStars(dt);
     UpdateParticles(dt);
-    if (IsKeyPressed(KEY_DOWN))
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
         G.goSel = (G.goSel + 1) % 2;
-    if (IsKeyPressed(KEY_UP))
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
         G.goSel = (G.goSel + 1) % 2;
+
+    /* Update buttons and track mouse hover → selection */
     for (int i = 0; i < 2; i++)
-        if (UpdateBtn(&G.goBtns[i], dt) && G.goBtns[i].hovered)
+    {
+        UpdateBtn(&G.goBtns[i], dt);
+        if (G.goBtns[i].hovered)
             G.goSel = i;
+    }
+
+    /* Play hover sound on focus change */
+    if (G.prevGoSel >= 0 && G.prevGoSel != G.goSel)
+        PlayBtnHover();
+    G.prevGoSel = G.goSel;
+
     bool enter = IsKeyPressed(KEY_ENTER);
     for (int i = 0; i < 2; i++)
     {
@@ -299,14 +430,15 @@ void ScreenGameOver(float dt)
     }
     if (enter)
     {
+        PlayBtnSelect();
         if (G.goSel == 0)
         {
             /* Play again: stop gameover BGM, restart gameplay BGM */
             StopMusicStream(G.bgmGameover);
             if (G.audioEnabled)
             {
-                PlayMusicStream(G.bgm);
-                SetMusicVolume(G.bgm, G.bgmVolume);
+                PlayMusicStream(G.bgmGameplay);
+                SetMusicVolume(G.bgmGameplay, G.bgmVolume);
             }
             InitGame();
             G.screen = SCREEN_GAMEPLAY;
@@ -317,10 +449,11 @@ void ScreenGameOver(float dt)
             StopMusicStream(G.bgmGameover);
             if (G.audioEnabled)
             {
-                PlayMusicStream(G.bgm);
-                SetMusicVolume(G.bgm, G.bgmVolume);
+                PlayMusicStream(G.bgmMenu);
+                SetMusicVolume(G.bgmMenu, G.bgmVolume);
             }
             G.screen = SCREEN_MAIN_MENU;
+            G.prevMenuSel = -1;
         }
     }
     BeginDrawing();
@@ -345,15 +478,24 @@ void ScreenGameOver(float dt)
 void ScreenOptions(float dt)
 {
     UpdateStars(dt);
-    if (IsKeyPressed(KEY_DOWN))
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
         G.optSel = (G.optSel + 1) % 2;
-    if (IsKeyPressed(KEY_UP))
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
         G.optSel = (G.optSel + 1) % 2;
+
+    /* Update buttons and track mouse hover → selection */
     for (int i = 0; i < 2; i++)
     {
-        if (UpdateBtn(&G.optBtns[i], dt))
+        UpdateBtn(&G.optBtns[i], dt);
+        if (G.optBtns[i].hovered)
             G.optSel = i;
     }
+
+    /* Play hover sound on focus change */
+    if (G.prevOptSel >= 0 && G.prevOptSel != G.optSel)
+        PlayBtnHover();
+    G.prevOptSel = G.optSel;
+
     bool enter = IsKeyPressed(KEY_ENTER);
     for (int i = 0; i < 2; i++)
     {
@@ -366,18 +508,22 @@ void ScreenOptions(float dt)
     if (IsKeyPressed(KEY_ESCAPE))
     {
         G.screen = SCREEN_MAIN_MENU;
+        G.prevMenuSel = -1;
     }
     if (enter)
     {
+        PlayBtnSelect();
         if (G.optSel == 0)
         {
             G.screen = SCREEN_AUDIO;
             G.audioBackBtn = MkBtn(SW / 2 - 110, 0, 220, 50, "BACK");
             G.audioSel = 0;
+            G.prevAudioSel = -1;
         }
         else if (G.optSel == 1)
         {
             G.screen = SCREEN_MAIN_MENU;
+            G.prevMenuSel = -1;
         }
     }
     BeginDrawing();
@@ -395,14 +541,24 @@ void ScreenAudio(float dt)
 {
     UpdateStars(dt);
 
-    /* 5 items: 0-4 = sliders (BGM, Firing, Explosion, Health Pickup, Shield Pickup), 5 = BACK */
-    int numSliders = 5;
+    /* 3 sliders: BGM Volume, UI Volume, Gameplay Sound; item 3 = BACK */
+    int numSliders = 3;
     int totalItems = numSliders + 1;
 
-    if (IsKeyPressed(KEY_DOWN))
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
         G.audioSel = (G.audioSel + 1) % totalItems;
-    if (IsKeyPressed(KEY_UP))
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
         G.audioSel = (G.audioSel + totalItems - 1) % totalItems;
+
+    /* Mouse hover on BACK button tracks selection */
+    UpdateBtn(&G.audioBackBtn, dt);
+    if (G.audioBackBtn.hovered)
+        G.audioSel = numSliders;
+
+    /* Play hover sound on focus change */
+    if (G.prevAudioSel >= 0 && G.prevAudioSel != G.audioSel)
+        PlayBtnHover();
+    G.prevAudioSel = G.audioSel;
 
     /* Keyboard left/right for slider adjustment */
     if (G.audioSel < numSliders)
@@ -411,41 +567,35 @@ void ScreenAudio(float dt)
         if (G.audioSel == 0)
             vol = &G.bgmVolume;
         else if (G.audioSel == 1)
-            vol = &G.firingVolume;
+            vol = &G.uiVolume;
         else if (G.audioSel == 2)
-            vol = &G.explosionVolume;
-        else if (G.audioSel == 3)
-            vol = &G.healthPickupVolume;
-        else if (G.audioSel == 4)
-            vol = &G.shieldPickupVolume;
+            vol = &G.gameplayVolume;
 
         if (vol)
         {
-            if (IsKeyPressed(KEY_RIGHT))
+            if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
                 *vol = Clampf(*vol + 0.1f, 0, 1);
-            if (IsKeyPressed(KEY_LEFT))
+            if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
                 *vol = Clampf(*vol - 0.1f, 0, 1);
         }
     }
 
-    /* BACK button interaction */
-    UpdateBtn(&G.audioBackBtn, dt);
-    if (G.audioBackBtn.hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-    {
-        G.audioSel = numSliders;
-    }
-
+    /* BACK button click */
     bool enter = IsKeyPressed(KEY_ENTER);
     if (G.audioBackBtn.hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         enter = true;
 
     if (IsKeyPressed(KEY_ESCAPE) || (enter && G.audioSel == numSliders))
     {
+        if (enter)
+            PlayBtnSelect();
         G.screen = SCREEN_OPTIONS;
+        G.prevOptSel = -1;
     }
 
     /* Apply BGM volume in real-time */
-    SetMusicVolume(G.bgm, G.bgmVolume);
+    SetMusicVolume(G.bgmMenu, G.bgmVolume);
+    SetMusicVolume(G.bgmGameplay, G.bgmVolume);
     SetMusicVolume(G.bgmGameover, G.bgmVolume);
 
     /* ---- Drawing ---- */
@@ -454,29 +604,21 @@ void ScreenAudio(float dt)
     DrawNebula();
     DrawStars();
 
-    /* Title at top */
-    DrawTitle((float)GetTime());
+    /* Animated "AUDIO SETTINGS" title (replaces COSMIC OBLIVION + section header) */
+    DrawSettingsTitle("AUDIO SETTINGS");
 
-    /* Section header */
-    int menuStartY = 200;
-    const char *sectionTitle = "AUDIO SETTINGS";
-    DrawText(sectionTitle, (SW - MeasureText(sectionTitle, 32)) / 2, menuStartY - 30, 32, WHITE);
-    DrawLine(SW / 2 - 200, menuStartY, SW / 2 + 200, menuStartY, (Color){60, 80, 120, 200});
+    /* Slider layout — positioned below the animated title */
+    int sliderStartY = 160;
+    int rowSpacing = 70;
+    int sliderX = SW / 2 - 230;
+    int sliderW = 220;
 
-    /* Slider layout */
-    int sliderStartY = menuStartY + 20;
-    int rowSpacing = 60;
-    int sliderX = SW / 2 - 200;
-    int sliderW = 200;
-
-    const char *labels[5] = {"BGM Volume", "Firing Volume", "Explosion Volume", "Health Pickup", "Shield Pickup"};
-    float *values[5] = {&G.bgmVolume, &G.firingVolume, &G.explosionVolume, &G.healthPickupVolume, &G.shieldPickupVolume};
-    Color colors[5] = {
+    const char *labels[3] = {"BGM Volume", "UI Volume", "Gameplay Sound"};
+    float *values[3] = {&G.bgmVolume, &G.uiVolume, &G.gameplayVolume};
+    Color colors[3] = {
         {0, 200, 100, 255},
-        {200, 160, 0, 255},
-        {200, 50, 0, 255},
-        {100, 255, 150, 255},
-        {100, 200, 255, 255}};
+        {220, 180, 40, 255},
+        {80, 160, 255, 255}};
 
     for (int i = 0; i < numSliders; i++)
     {
@@ -486,7 +628,7 @@ void ScreenAudio(float dt)
     }
 
     /* BACK button: position below sliders */
-    int backY = sliderStartY + numSliders * rowSpacing + 20;
+    int backY = sliderStartY + numSliders * rowSpacing + 30;
     G.audioBackBtn.rect.x = SW / 2 - 110;
     G.audioBackBtn.rect.y = backY;
     DrawBtn(G.audioBackBtn, G.audioSel == numSliders);

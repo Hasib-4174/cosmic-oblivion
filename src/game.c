@@ -47,7 +47,7 @@ static void PlayFiringSound(void)
         G.firingSoundIdx = 0;
     if (G.firingSounds[G.firingSoundIdx].frameCount == 0)
         G.firingSounds[G.firingSoundIdx] = LoadSound("audio/firing_sound/firing_sound1.ogg");
-    SetSoundVolume(G.firingSounds[G.firingSoundIdx], G.firingVolume);
+    SetSoundVolume(G.firingSounds[G.firingSoundIdx], G.gameplayVolume);
     PlaySound(G.firingSounds[G.firingSoundIdx]);
 }
 
@@ -64,7 +64,7 @@ static void PlayExplosionSound(void)
     /* Copy the variant into the round-robin slot if needed */
     if (G.explosionSounds[G.explosionSoundIdx].frameCount == 0)
         G.explosionSounds[G.explosionSoundIdx] = LoadSoundAlias(G.explosionVariants[variant]);
-    SetSoundVolume(G.explosionSounds[G.explosionSoundIdx], G.explosionVolume);
+    SetSoundVolume(G.explosionSounds[G.explosionSoundIdx], G.gameplayVolume);
     PlaySound(G.explosionSounds[G.explosionSoundIdx]);
 }
 
@@ -77,7 +77,7 @@ static void PlayHealthPickupSound(void)
         G.healthPickupSoundIdx = 0;
     if (G.healthPickupSounds[G.healthPickupSoundIdx].frameCount == 0)
         G.healthPickupSounds[G.healthPickupSoundIdx] = LoadSound("audio/health_pickup.wav");
-    SetSoundVolume(G.healthPickupSounds[G.healthPickupSoundIdx], G.healthPickupVolume);
+    SetSoundVolume(G.healthPickupSounds[G.healthPickupSoundIdx], G.gameplayVolume);
     PlaySound(G.healthPickupSounds[G.healthPickupSoundIdx]);
 }
 
@@ -90,7 +90,7 @@ static void PlayShieldPickupSound(void)
         G.shieldPickupSoundIdx = 0;
     if (G.shieldPickupSounds[G.shieldPickupSoundIdx].frameCount == 0)
         G.shieldPickupSounds[G.shieldPickupSoundIdx] = LoadSound("audio/shield/shield_field.ogg");
-    SetSoundVolume(G.shieldPickupSounds[G.shieldPickupSoundIdx], G.shieldPickupVolume);
+    SetSoundVolume(G.shieldPickupSounds[G.shieldPickupSoundIdx], G.gameplayVolume);
     PlaySound(G.shieldPickupSounds[G.shieldPickupSoundIdx]);
 }
 
@@ -100,8 +100,29 @@ static void PlayDamageSound(void)
         return;
     if (G.damageSound.frameCount == 0)
         G.damageSound = LoadSound("audio/damage/damage_take.mp3");
-    SetSoundVolume(G.damageSound, 0.15f);
+    SetSoundVolume(G.damageSound, G.gameplayVolume * 0.2f);
     PlaySound(G.damageSound);
+}
+
+void PlayEnemyShootSound(void)
+{
+    if (!G.audioEnabled)
+        return;
+    G.sfxEnemyShootIdx++;
+    if (G.sfxEnemyShootIdx >= 8)
+        G.sfxEnemyShootIdx = 0;
+    if (G.sfxEnemyShoot[G.sfxEnemyShootIdx].frameCount == 0)
+        G.sfxEnemyShoot[G.sfxEnemyShootIdx] = LoadSound("audio/enemy/shoting_sound.ogg");
+    SetSoundVolume(G.sfxEnemyShoot[G.sfxEnemyShootIdx], G.gameplayVolume * 0.5f);
+    PlaySound(G.sfxEnemyShoot[G.sfxEnemyShootIdx]);
+}
+
+void PlayEnemyDestroySound(void)
+{
+    if (!G.audioEnabled)
+        return;
+    SetSoundVolume(G.sfxEnemyDestroy, G.gameplayVolume);
+    PlaySound(G.sfxEnemyDestroy);
 }
 
 void InitPlayer(void)
@@ -238,7 +259,7 @@ void UpdateGame(float dt)
         {
             if (!IsSoundPlaying(G.engineSounds[pl->type]))
             {
-                SetSoundVolume(G.engineSounds[pl->type], 0.3f);
+                SetSoundVolume(G.engineSounds[pl->type], G.gameplayVolume * 0.4f);
                 PlaySound(G.engineSounds[pl->type]);
             }
             G.enginePlaying = true;
@@ -441,6 +462,7 @@ void UpdateGame(float dt)
                 {
                     G.enemies[ei].active = false;
                     PlayExplosionSound();
+                    PlayEnemyDestroySound();
                     SpawnP(G.enemies[ei].pos, RED, 20, 200, 3.5f);
                     
                     int points = 150;
@@ -492,7 +514,7 @@ void UpdateGame(float dt)
                         SaveHS(G.highscore);
                     }
                     G.gameOver = true;
-                    StopMusicStream(G.bgm);
+                    StopMusicStream(G.bgmGameplay);
                     if (G.audioEnabled)
                     {
                         PlayMusicStream(G.bgmGameover);
@@ -551,7 +573,7 @@ void UpdateGame(float dt)
                     }
                     G.gameOver = true;
                     /* Stop gameplay BGM, start gameover BGM */
-                    StopMusicStream(G.bgm);
+                    StopMusicStream(G.bgmGameplay);
                     if (G.audioEnabled)
                     {
                         PlayMusicStream(G.bgmGameover);
@@ -641,6 +663,12 @@ void UpdateGame(float dt)
                 PlayShieldPickupSound();
                 G.playerShieldActive = true;
                 G.playerShieldDuration = 5.0f;
+                /* Play shield activation sound once */
+                if (G.audioEnabled)
+                {
+                    SetSoundVolume(G.sfxShieldOn, G.gameplayVolume);
+                    PlaySound(G.sfxShieldOn);
+                }
                 SpawnP(pl->pos, (Color){100, 200, 255, 255}, 15, 200, 2.5f);
                 SpawnFloatingText((Vector2){pl->pos.x, pl->pos.y - 30}, "+SHIELD", (Color){100, 200, 255, 255});
             }

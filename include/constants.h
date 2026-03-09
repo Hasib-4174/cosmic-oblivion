@@ -151,12 +151,10 @@ typedef struct
     int menuSel, pauseSel, goSel, shipSel, optSel, audioSel;
     bool gameOver;
 
-    /* Audio volumes */
+    /* Audio volumes (3 categories) */
     float bgmVolume;
-    float firingVolume;
-    float explosionVolume;
-    float healthPickupVolume;
-    float shieldPickupVolume;
+    float uiVolume;
+    float gameplayVolume;
 
     /* Audio toggle */
     bool audioEnabled;
@@ -191,9 +189,26 @@ typedef struct
     bool engineSoundsLoaded;
     bool enginePlaying;
 
-    /* BGM */
-    Music bgm;
+    /* BGM (3 separate tracks) */
+    Music bgmMenu;
+    Music bgmGameplay;
     Music bgmGameover;
+
+    /* UI sounds */
+    Sound sfxButtonHover;
+    Sound sfxButtonSelect;
+
+    /* Enemy sounds */
+    Sound sfxEnemyShoot[8];
+    int sfxEnemyShootIdx;
+    Sound sfxEnemyDestroy;
+    Sound sfxEnemyEngine;
+
+    /* Shield activation sound */
+    Sound sfxShieldOn;
+
+    /* Previous selection trackers (for button hover sound deduplication) */
+    int prevMenuSel, prevPauseSel, prevGoSel, prevOptSel, prevAudioSel, prevShipSel;
 
     /* Shield pickup system */
     bool playerShieldActive;
