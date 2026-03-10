@@ -236,6 +236,10 @@ typedef struct
     /* Shield pickup system */
     bool playerShieldActive;
     float playerShieldDuration;
+
+    /* Special weapon energy */
+    float energy, maxEnergy;
+    float weaponCooldown;
 } GameState;
 
 #endif

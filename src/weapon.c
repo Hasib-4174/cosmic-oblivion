@@ -18,6 +18,10 @@
 
 extern GameState G;
 
+/* Forward declarations for static helpers used in FireAdvancedWeapon */
+static void DestroyMeteor(int mi, Vector2 hitPos);
+static void DestroyEnemy(int ei, Vector2 hitPos);
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -90,9 +94,11 @@ void FireAdvancedWeapon(void)
     if (wt == WEAPON_RAILGUN)
     {
         /* Hitscan beam — instant damage + visual effect projectile */
-        SpawnWP(pl->pos, (Vector2){0, 0}, 0.2f, pl->pos.x, 0, WEAPON_RAILGUN);
+        SpawnWP(pl->pos, (Vector2){0, 0}, 0.25f, pl->pos.x, 0, WEAPON_RAILGUN);
+        G.shakeTimer = 0.15f;
+        G.shakeMag = 5;
 
-        Rectangle beam = {pl->pos.x - 12, -100, 24, pl->pos.y + 100};
+        Rectangle beam = {pl->pos.x - 14, -100, 28, pl->pos.y + 100};
         for (int i = 0; i < MAX_ENEMIES; i++)
         {
             if (!G.enemies[i].active) continue;
@@ -102,7 +108,10 @@ void FireAdvancedWeapon(void)
                 if (CheckCollisionRecs(beam, hb.rects[r]))
                 {
                     G.enemies[i].hp -= 5;
-                    SpawnP(G.enemies[i].pos, WHITE, 12, 180, 2.5f);
+                    SpawnP(G.enemies[i].pos, WHITE, 15, 200, 2.5f);
+                    SpawnP(G.enemies[i].pos, SKYBLUE, 8, 160, 2.0f);
+                    if (G.enemies[i].hp <= 0)
+                        DestroyEnemy(i, G.enemies[i].pos);
                     break;
                 }
             }
@@ -113,7 +122,9 @@ void FireAdvancedWeapon(void)
             if (CheckCollisionCircleRec(G.meteors[i].pos, G.meteors[i].radius, beam))
             {
                 G.meteors[i].hp -= 5;
-                SpawnP(G.meteors[i].pos, WHITE, 10, 160, 2.0f);
+                SpawnP(G.meteors[i].pos, WHITE, 12, 180, 2.0f);
+                if (G.meteors[i].hp <= 0)
+                    DestroyMeteor(i, G.meteors[i].pos);
             }
         }
     }
@@ -153,9 +164,21 @@ void FireAdvancedWeapon(void)
         {
             Vector2 tPos = tType == 0 ? G.enemies[tIdx].pos : G.meteors[tIdx].pos;
             SpawnWP(pl->pos, tPos, 0.15f, 0, 0, WEAPON_TESLA);
-            if (tType == 0) G.enemies[tIdx].hp -= 1;
-            else             G.meteors[tIdx].hp -= 1;
-            SpawnP(tPos, SKYBLUE, 6, 120, 2.0f);
+            if (tType == 0)
+            {
+                G.enemies[tIdx].hp -= 1;
+                SpawnP(tPos, SKYBLUE, 8, 140, 2.0f);
+                SpawnP(tPos, WHITE, 3, 80, 1.5f);
+                if (G.enemies[tIdx].hp <= 0)
+                    DestroyEnemy(tIdx, tPos);
+            }
+            else
+            {
+                G.meteors[tIdx].hp -= 1;
+                SpawnP(tPos, SKYBLUE, 8, 140, 2.0f);
+                if (G.meteors[tIdx].hp <= 0)
+                    DestroyMeteor(tIdx, tPos);
+            }
 
             int maxChain = (pl->type == SHIP_TITAN) ? 5 : 3;
             Vector2 last = tPos;
@@ -180,9 +203,21 @@ void FireAdvancedWeapon(void)
 
                 Vector2 nPos = nType == 0 ? G.enemies[nIdx].pos : G.meteors[nIdx].pos;
                 SpawnWP(last, nPos, 0.15f, 0, 0, WEAPON_TESLA);
-                if (nType == 0) G.enemies[nIdx].hp -= 1;
-                else             G.meteors[nIdx].hp -= 1;
-                SpawnP(nPos, SKYBLUE, 6, 120, 2.0f);
+                if (nType == 0)
+                {
+                    G.enemies[nIdx].hp -= 1;
+                    SpawnP(nPos, SKYBLUE, 8, 140, 2.0f);
+                    SpawnP(nPos, WHITE, 3, 80, 1.5f);
+                    if (G.enemies[nIdx].hp <= 0)
+                        DestroyEnemy(nIdx, nPos);
+                }
+                else
+                {
+                    G.meteors[nIdx].hp -= 1;
+                    SpawnP(nPos, SKYBLUE, 8, 140, 2.0f);
+                    if (G.meteors[nIdx].hp <= 0)
+                        DestroyMeteor(nIdx, nPos);
+                }
                 last = nPos; lastIdx = nIdx; lastType = nType; chains++;
             }
         }
@@ -240,16 +275,19 @@ void UpdateWeaponProjs(float dt)
             p->life -= dt;
             if (p->state == 0 && p->life <= 0)
             {
-                /* Explode into 12 fragments */
+                /* Explode into 16 fragments */
                 p->active = false;
-                for (int f = 0; f < 12; f++)
+                for (int f = 0; f < 16; f++)
                 {
-                    float a = (f / 12.0f) * 3.14159265f * 2;
+                    float a = (f / 16.0f) * 3.14159265f * 2;
                     SpawnWP(p->pos,
-                            (Vector2){cosf(a) * 350, sinf(a) * 350},
+                            (Vector2){cosf(a) * 380, sinf(a) * 380},
                             0.4f, p->pos.x, 2, WEAPON_FLAK);
                 }
-                SpawnP(p->pos, YELLOW, 25, 300, 3.5f);
+                SpawnP(p->pos, YELLOW, 30, 350, 4.0f);
+                SpawnP(p->pos, ORANGE, 15, 200, 3.0f);
+                G.shakeTimer = 0.12f;
+                G.shakeMag = 4;
             }
             else if (p->state == 2 && p->life <= 0)
             {
@@ -263,8 +301,36 @@ void UpdateWeaponProjs(float dt)
             p->life -= dt;
             if (p->life <= 0)
             {
+                /* Gravity burst: damage everything nearby */
                 p->active = false;
-                SpawnP(p->pos, PURPLE, 30, 250, 4.0f);
+                SpawnP(p->pos, PURPLE, 35, 300, 4.0f);
+                SpawnP(p->pos, VIOLET, 20, 200, 3.0f);
+                G.shakeTimer = 0.3f;
+                G.shakeMag = 8;
+                for (int e = 0; e < MAX_ENEMIES; e++)
+                {
+                    if (!G.enemies[e].active) continue;
+                    float d = VDist(p->pos, G.enemies[e].pos);
+                    if (d < 160)
+                    {
+                        G.enemies[e].hp -= 3;
+                        SpawnP(G.enemies[e].pos, VIOLET, 8, 120, 2.0f);
+                        if (G.enemies[e].hp <= 0)
+                            DestroyEnemy(e, p->pos);
+                    }
+                }
+                for (int m = 0; m < MAX_METEORS; m++)
+                {
+                    if (!G.meteors[m].active) continue;
+                    float d = VDist(p->pos, G.meteors[m].pos);
+                    if (d < 160)
+                    {
+                        G.meteors[m].hp -= 3;
+                        SpawnP(G.meteors[m].pos, VIOLET, 8, 120, 2.0f);
+                        if (G.meteors[m].hp <= 0)
+                            DestroyMeteor(m, p->pos);
+                    }
+                }
             }
             else
             {
@@ -277,8 +343,9 @@ void UpdateWeaponProjs(float dt)
                     {
                         float nx = (p->pos.x - G.enemies[e].pos.x) / d;
                         float ny = (p->pos.y - G.enemies[e].pos.y) / d;
-                        G.enemies[e].pos.x += nx * 120 * dt;
-                        G.enemies[e].pos.y += ny * 120 * dt;
+                        float force = 200.0f / (d * 0.01f + 1.0f);
+                        G.enemies[e].pos.x += nx * force * dt;
+                        G.enemies[e].pos.y += ny * force * dt;
                     }
                 }
                 for (int m = 0; m < MAX_METEORS; m++)
@@ -289,23 +356,31 @@ void UpdateWeaponProjs(float dt)
                     {
                         float nx = (p->pos.x - G.meteors[m].pos.x) / d;
                         float ny = (p->pos.y - G.meteors[m].pos.y) / d;
-                        G.meteors[m].pos.x += nx * 80 * dt;
-                        G.meteors[m].pos.y += ny * 80 * dt;
+                        float force = 150.0f / (d * 0.01f + 1.0f);
+                        G.meteors[m].pos.x += nx * force * dt;
+                        G.meteors[m].pos.y += ny * force * dt;
                     }
                 }
-                if (GetRandomValue(0, 100) < 40)
-                    SpawnP((Vector2){p->pos.x + Rf(-15, 15),
-                                     p->pos.y + Rf(-15, 15)},
-                           VIOLET, 1, 60, 1.5f);
+                if (GetRandomValue(0, 100) < 60)
+                    SpawnP((Vector2){p->pos.x + Rf(-20, 20),
+                                     p->pos.y + Rf(-20, 20)},
+                           VIOLET, 1, 80, 1.8f);
+                /* Swirling particles */
+                float ang = p->stateTime * 8.0f;
+                SpawnP((Vector2){p->pos.x + cosf(ang) * 25,
+                                 p->pos.y + sinf(ang) * 25},
+                       PURPLE, 1, 50, 1.2f);
             }
         }
         else if (p->wtype == WEAPON_WAVE)
         {
             p->pos.y += p->vel.y * dt;
             float sign = (p->state == 0) ? 1.0f : -1.0f;
-            p->pos.x = p->baseX + sinf(p->stateTime * 15.0f) * 40.0f * sign;
-            if (GetRandomValue(0, 10) > 6)
-                SpawnP(p->pos, GREEN, 1, 40, 1.0f);
+            p->pos.x = p->baseX + sinf(p->stateTime * 15.0f) * 50.0f * sign;
+            /* Glowing trail */
+            SpawnP(p->pos, LIME, 1, 50, 1.2f);
+            if (GetRandomValue(0, 10) > 5)
+                SpawnP(p->pos, GREEN, 1, 35, 0.8f);
         }
 
         /* Off-screen cull */
@@ -469,18 +544,24 @@ void DrawWeaponEffects(void)
 
         if (p->wtype == WEAPON_RAILGUN)
         {
-            float a = p->life / 0.2f;
+            float a = p->life / 0.25f;
             unsigned char aa = (unsigned char)(255 * a);
+            /* Outer glow */
+            DrawRectangle((int)(p->pos.x - 20 * a), -100,
+                          (int)(40 * a), (int)(p->pos.y + 100),
+                          CAlpha(SKYBLUE, (unsigned char)(aa / 3)));
+            /* Core beam */
             DrawRectangle((int)(p->pos.x - 14 * a), -100,
                           (int)(28 * a), (int)(p->pos.y + 100),
                           CAlpha(WHITE, aa));
             DrawRectangle((int)(p->pos.x - 5 * a), -100,
                           (int)(10 * a), (int)(p->pos.y + 100),
                           CAlpha(SKYBLUE, aa));
-            for (int k = 0; k < 4; k++)
-                DrawCircleV((Vector2){p->pos.x + Rf(-12*a, 12*a),
-                                      p->pos.y + Rf(-8, 8)},
-                            3 * a, WHITE);
+            /* Impact sparks */
+            for (int k = 0; k < 6; k++)
+                DrawCircleV((Vector2){p->pos.x + Rf(-14*a, 14*a),
+                                      p->pos.y + Rf(-10, 10)},
+                            4 * a, WHITE);
         }
         else if (p->wtype == WEAPON_FLAK)
         {
@@ -541,10 +622,10 @@ void DrawWeaponEffects(void)
         }
         else if (p->wtype == WEAPON_WAVE)
         {
-            DrawCircleV(p->pos, 5, LIME);
-            DrawCircleV(p->pos, 2, WHITE);
             DrawCircleGradient((int)p->pos.x, (int)p->pos.y,
-                               16, CAlpha(GREEN, 180), BLANK);
+                               22, CAlpha(GREEN, 120), BLANK);
+            DrawCircleV(p->pos, 6, LIME);
+            DrawCircleV(p->pos, 3, WHITE);
         }
     }
 }

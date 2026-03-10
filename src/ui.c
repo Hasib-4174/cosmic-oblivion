@@ -396,9 +396,9 @@ void ScreenWeaponSelect(float dt)
     UpdateStars(dt);
     int oldSel = G.weaponSel;
     if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
-        G.weaponSel = (G.weaponSel + 5) % 6;
+        G.weaponSel = (G.weaponSel + 4) % 5;
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
-        G.weaponSel = (G.weaponSel + 1) % 6;
+        G.weaponSel = (G.weaponSel + 1) % 5;
     if (G.weaponSel != oldSel)
     {
         if (G.prevWeaponSel >= 0) PlayBtnHover();
@@ -407,7 +407,8 @@ void ScreenWeaponSelect(float dt)
     if (IsKeyPressed(KEY_ENTER))
     {
         PlayBtnSelect();
-        G.selectedWeapon = (WeaponType)G.weaponSel;
+        /* weaponSel 0..4 maps to WEAPON_RAILGUN(1)..WEAPON_WAVE(5) */
+        G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
         StopMusicStream(G.bgmMenu);
         if (G.audioEnabled)
         {
@@ -427,50 +428,56 @@ void ScreenWeaponSelect(float dt)
     ClearBackground((Color){4, 4, 16, 255});
     DrawNebula();
     DrawStars();
-    DrawText("SELECT WEAPON SYSTEM",
-             (SW - MeasureText("SELECT WEAPON SYSTEM", 36)) / 2, 40, 36, GOLD);
+    DrawText("SELECT SPECIAL WEAPON",
+             (SW - MeasureText("SELECT SPECIAL WEAPON", 36)) / 2, 30, 36, GOLD);
+    DrawText("Laser is always available (SPACE)  |  Special weapon uses H key + Energy",
+             (SW - MeasureText("Laser is always available (SPACE)  |  Special weapon uses H key + Energy", 14)) / 2,
+             72, 14, (Color){160, 180, 200, 255});
 
-    const char *names[6] = {"STANDARD LASER", "RAILGUN", "FLAK CANNON",
-                            "TESLA LINK", "SINGULARITY", "WAVE BEAM"};
-    const char *line1[6] = {"Rapid-fire energy bolts",
-                            "Instant piercing beam",
+    const char *names[5] = {"RAILGUN", "FLAK CANNON", "TESLA LINK",
+                            "SINGULARITY", "WAVE BEAM"};
+    const char *line1[5] = {"Instant piercing beam",
                             "Burst fragmentation",
                             "Chain lightning",
                             "Gravity pull bomb",
                             "Sine wave pattern"};
-    const char *line2[6] = {"DMG: Med   Rate: Ship-dep.",
-                            "DMG: High  Rate: Slow",
+    const char *line2[5] = {"DMG: High  Rate: Slow",
                             "DMG: Med   Rate: Med",
                             "DMG: Low   Rate: Fast",
                             "DMG: Low   Rate: Slow",
                             "DMG: Med   Rate: Fast"};
+    const int costs[5] = {40, 30, 25, 50, 20};
 
     float t = (float)GetTime();
-    int cw = 140, sp = 15;
-    int tw = 6 * cw + 5 * sp;
-    int sx = (SW - tw) / 2;
+    int cw = 160, sp = 20;
+    int tw2 = 5 * cw + 4 * sp;
+    int sx = (SW - tw2) / 2;
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 5; i++)
     {
         int cx = sx + i * (cw + sp) + cw / 2;
         bool sel = (i == G.weaponSel);
         Color bc = sel ? (Color){40, 80, 180, 200} : (Color){20, 30, 50, 180};
-        Rectangle card = {(float)(cx - cw / 2), 160, (float)cw, 260};
+        Rectangle card = {(float)(cx - cw / 2), 120, (float)cw, 310};
         DrawRectangleRounded(card, 0.1f, 8, bc);
         if (sel) DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, (Color){100, 180, 255, 255});
         else     DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
 
-        DrawWeaponPreview((Vector2){(float)cx, 240}, i, t);
+        /* Preview uses indices 1-5 matching WeaponType enum */
+        DrawWeaponPreview((Vector2){(float)cx, 220}, i + 1, t);
 
-        int nw = MeasureText(names[i], 16);
-        DrawText(names[i], cx - nw / 2, 320, 16, WHITE);
+        int nw = MeasureText(names[i], 18);
+        DrawText(names[i], cx - nw / 2, 290, 18, WHITE);
         int l1w = MeasureText(line1[i], 12);
-        DrawText(line1[i], cx - l1w / 2, 350, 12, LIGHTGRAY);
+        DrawText(line1[i], cx - l1w / 2, 320, 12, LIGHTGRAY);
         int l2w = MeasureText(line2[i], 11);
-        DrawText(line2[i], cx - l2w / 2, 370, 11, (Color){180, 200, 220, 255});
+        DrawText(line2[i], cx - l2w / 2, 340, 11, (Color){180, 200, 220, 255});
+        const char *costStr = TextFormat("Energy: %d", costs[i]);
+        int cfw = MeasureText(costStr, 13);
+        DrawText(costStr, cx - cfw / 2, 362, 13, (Color){120, 160, 255, 255});
         if (sel) {
             int sw2 = MeasureText("[ SELECTED ]", 14);
-            DrawText("[ SELECTED ]", cx - sw2 / 2, 400, 14, GOLD);
+            DrawText("[ SELECTED ]", cx - sw2 / 2, 390, 14, GOLD);
         }
     }
 
