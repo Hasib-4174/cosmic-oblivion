@@ -263,15 +263,9 @@ void ScreenShipSelect(float dt)
     {
         PlayBtnSelect();
         G.selectedShip = G.shipSel;
-        /* Stop menu BGM, start gameplay BGM */
-        StopMusicStream(G.bgmMenu);
-        if (G.audioEnabled)
-        {
-            PlayMusicStream(G.bgmGameplay);
-            SetMusicVolume(G.bgmGameplay, G.bgmVolume);
-        }
-        InitGame();
-        G.screen = SCREEN_GAMEPLAY;
+        G.screen = SCREEN_WEAPON_SELECT;
+        G.weaponSel = 0;
+        G.prevWeaponSel = -1;
     }
     if (IsKeyPressed(KEY_ESCAPE))
     {
@@ -312,6 +306,188 @@ void ScreenShipSelect(float dt)
     DrawAudioToggle();
     EndDrawing();
 }
+
+/* ---- Weapon preview mini-animations ---- */
+static void DrawWeaponPreview(Vector2 c, int wt, float t)
+{
+    if (wt == 0) /* LASER */
+    {
+        float f = fmodf(t * 4, 1.0f);
+        float y = c.y + 40 - f * 100;
+        DrawRectangle((int)c.x - 2, (int)y, 4, 14, (Color){180, 230, 255, 255});
+        DrawRectangle((int)c.x - 1, (int)y + 2, 2, 10, WHITE);
+    }
+    else if (wt == 1) /* RAILGUN */
+    {
+        float f = fmodf(t * 2, 1.0f);
+        if (f < 0.15f)
+        {
+            DrawRectangle((int)c.x - 8, (int)c.y - 70, 16, 110, CAlpha(WHITE, 200));
+            DrawRectangle((int)c.x - 3, (int)c.y - 70, 6, 110, SKYBLUE);
+        }
+    }
+    else if (wt == 2) /* FLAK */
+    {
+        float f = fmodf(t, 1.0f);
+        if (f < 0.5f)
+        {
+            float y = c.y + 30 - f * 100;
+            DrawCircle((int)c.x, (int)y, 6, ORANGE);
+            DrawCircle((int)c.x, (int)y, 3, WHITE);
+        }
+        else
+        {
+            float e = f - 0.5f;
+            DrawCircle((int)c.x, (int)c.y - 20, (int)(15 - e * 20), CAlpha(YELLOW, 180));
+            for (int i = 0; i < 8; i++)
+            {
+                float a = i * 3.14159265f / 4.0f;
+                DrawCircle((int)(c.x + cosf(a)*e*80), (int)(c.y - 20 + sinf(a)*e*80), 3, YELLOW);
+            }
+        }
+    }
+    else if (wt == 3) /* TESLA */
+    {
+        float f = fmodf(t * 3, 1.0f);
+        Vector2 p1 = {c.x - 20, c.y + 20};
+        Vector2 p2 = {c.x + 25, c.y - 5};
+        Vector2 p3 = {c.x - 15, c.y - 35};
+        DrawCircleV(p1, 6, RED); DrawCircleV(p2, 6, RED); DrawCircleV(p3, 6, RED);
+        if (f < 0.6f)
+        {
+            p2.x += Rf(-4, 4); p2.y += Rf(-4, 4);
+            p3.x += Rf(-4, 4); p3.y += Rf(-4, 4);
+            DrawLineEx(p1, p2, 4.0f, SKYBLUE);
+            DrawLineEx(p1, p2, 2.0f, WHITE);
+            DrawLineEx(p2, p3, 4.0f, SKYBLUE);
+            DrawLineEx(p2, p3, 2.0f, WHITE);
+        }
+    }
+    else if (wt == 4) /* SINGULARITY */
+    {
+        DrawCircleGradient((int)c.x, (int)c.y - 10,
+                           (int)(20 + sinf(t * 10) * 5),
+                           CAlpha(PURPLE, 180), BLANK);
+        DrawCircle((int)c.x, (int)c.y - 10, 8, BLACK);
+        for (int i = 0; i < 3; i++)
+        {
+            float a = t * 5 + i * 3.14159265f * 2 / 3.0f;
+            float d = 25 - fmodf(t * 20 + i * 15, 25.0f);
+            DrawCircle((int)(c.x + cosf(a)*d), (int)(c.y - 10 + sinf(a)*d), 3, VIOLET);
+        }
+    }
+    else if (wt == 5) /* WAVE */
+    {
+        float off = fmodf(t * 80, 100.0f);
+        float y = c.y + 40 - off;
+        float x = c.x + sinf(t * 15) * 20;
+        DrawCircle((int)x, (int)y, 6, LIME);
+        for (int i = 1; i < 5; i++)
+        {
+            float py = c.y + 40 - fmodf(t * 80 - i * 15, 100.0f);
+            float px = c.x + sinf((t - i * 0.1f) * 15) * 20;
+            if (py > c.y - 60) DrawCircle((int)px, (int)py, 4 - i, CAlpha(GREEN, 150));
+        }
+    }
+}
+
+void ScreenWeaponSelect(float dt)
+{
+    UpdateStars(dt);
+    int oldSel = G.weaponSel;
+    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+        G.weaponSel = (G.weaponSel + 4) % 5;
+    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+        G.weaponSel = (G.weaponSel + 1) % 5;
+    if (G.weaponSel != oldSel)
+    {
+        if (G.prevWeaponSel >= 0) PlayBtnHover();
+        G.prevWeaponSel = G.weaponSel;
+    }
+    if (IsKeyPressed(KEY_ENTER))
+    {
+        PlayBtnSelect();
+        /* weaponSel 0..4 maps to WEAPON_RAILGUN(1)..WEAPON_WAVE(5) */
+        G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
+        StopMusicStream(G.bgmMenu);
+        if (G.audioEnabled)
+        {
+            PlayMusicStream(G.bgmGameplay);
+            SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+        }
+        InitGame();
+        G.screen = SCREEN_GAMEPLAY;
+    }
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        G.screen = SCREEN_SHIP_SELECT;
+        G.prevShipSel = -1;
+    }
+
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
+    DrawStars();
+    DrawText("SELECT SPECIAL WEAPON",
+             (SW - MeasureText("SELECT SPECIAL WEAPON", 36)) / 2, 30, 36, GOLD);
+    DrawText("Laser is always available (SPACE)  |  Special weapon uses H key + Energy",
+             (SW - MeasureText("Laser is always available (SPACE)  |  Special weapon uses H key + Energy", 14)) / 2,
+             72, 14, (Color){160, 180, 200, 255});
+
+    const char *names[5] = {"RAILGUN", "FLAK CANNON", "TESLA LINK",
+                            "SINGULARITY", "WAVE BEAM"};
+    const char *line1[5] = {"Instant piercing beam",
+                            "Burst fragmentation",
+                            "Chain lightning",
+                            "Gravity pull bomb",
+                            "Sine wave pattern"};
+    const char *line2[5] = {"DMG: High  Rate: Slow",
+                            "DMG: Med   Rate: Med",
+                            "DMG: Low   Rate: Fast",
+                            "DMG: Low   Rate: Slow",
+                            "DMG: Med   Rate: Fast"};
+    const int costs[5] = {40, 30, 25, 50, 20};
+
+    float t = (float)GetTime();
+    int cw = 160, sp = 20;
+    int tw2 = 5 * cw + 4 * sp;
+    int sx = (SW - tw2) / 2;
+
+    for (int i = 0; i < 5; i++)
+    {
+        int cx = sx + i * (cw + sp) + cw / 2;
+        bool sel = (i == G.weaponSel);
+        Color bc = sel ? (Color){40, 80, 180, 200} : (Color){20, 30, 50, 180};
+        Rectangle card = {(float)(cx - cw / 2), 120, (float)cw, 310};
+        DrawRectangleRounded(card, 0.1f, 8, bc);
+        if (sel) DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, (Color){100, 180, 255, 255});
+        else     DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
+
+        /* Preview uses indices 1-5 matching WeaponType enum */
+        DrawWeaponPreview((Vector2){(float)cx, 220}, i + 1, t);
+
+        int nw = MeasureText(names[i], 18);
+        DrawText(names[i], cx - nw / 2, 290, 18, WHITE);
+        int l1w = MeasureText(line1[i], 12);
+        DrawText(line1[i], cx - l1w / 2, 320, 12, LIGHTGRAY);
+        int l2w = MeasureText(line2[i], 11);
+        DrawText(line2[i], cx - l2w / 2, 340, 11, (Color){180, 200, 220, 255});
+        const char *costStr = TextFormat("Energy: %d", costs[i]);
+        int cfw = MeasureText(costStr, 13);
+        DrawText(costStr, cx - cfw / 2, 362, 13, (Color){120, 160, 255, 255});
+        if (sel) {
+            int sw2 = MeasureText("[ SELECTED ]", 14);
+            DrawText("[ SELECTED ]", cx - sw2 / 2, 390, 14, GOLD);
+        }
+    }
+
+    const char *hint = "< A/D or Arrows  |  ENTER to start  |  ESC back >";
+    DrawText(hint, (SW - MeasureText(hint, 16)) / 2, SH - 40, 16,
+             (Color){140, 160, 180, 255});
+    DrawAudioToggle();
+    EndDrawing();
+}
+
 void ScreenPause(float dt)
 {
     (void)dt;

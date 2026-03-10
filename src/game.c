@@ -11,6 +11,7 @@
 #include "include/floatingtext.h"
 #include "include/enemy.h"
 #include "include/collision.h"
+#include "include/weapon.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -191,7 +192,11 @@ void InitGame(void)
     G.playerShieldActive = false;
     G.playerShieldDuration = 0;
     G.enginePlaying = false;
+    G.energy = 100.0f;
+    G.maxEnergy = 100.0f;
+    G.weaponCooldown = 0;
     InitPlayer();
+    InitWeaponProjs();
 }
 
 void UpdateGame(float dt)
@@ -292,6 +297,7 @@ void UpdateGame(float dt)
         pl->fireCooldown -= dt;
         if (IsKeyDown(KEY_SPACE) && pl->fireCooldown <= 0)
         {
+            /* Original laser system — completely unchanged */
             pl->fireCooldown = pl->fireRate;
             if (pl->type == SHIP_TITAN)
             {
@@ -336,6 +342,36 @@ void UpdateGame(float dt)
                 }
             }
             SpawnP((Vector2){pl->pos.x, pl->pos.y - 28}, (Color){200, 230, 255, 255}, 3, 60, 2);
+        }
+
+        /* --- Special weapon on H key with energy --- */
+        G.weaponCooldown -= dt;
+        if (IsKeyDown(KEY_H) && G.weaponCooldown <= 0 && G.selectedWeapon != WEAPON_LASER)
+        {
+            float cost = 20;
+            float cd = 1.0f;
+            if (G.selectedWeapon == WEAPON_RAILGUN)         { cost = 40; cd = 1.0f; }
+            else if (G.selectedWeapon == WEAPON_FLAK)       { cost = 30; cd = 0.5f; }
+            else if (G.selectedWeapon == WEAPON_TESLA)      { cost = 25; cd = 0.25f; }
+            else if (G.selectedWeapon == WEAPON_SINGULARITY) { cost = 50; cd = 1.2f; }
+            else if (G.selectedWeapon == WEAPON_WAVE)        { cost = 20; cd = 0.35f; }
+
+            if (G.energy >= cost)
+            {
+                G.energy -= cost;
+                G.weaponCooldown = cd;
+                FireAdvancedWeapon();
+                PlayFiringSound();
+                SpawnP((Vector2){pl->pos.x, pl->pos.y - 28},
+                       (Color){160, 100, 255, 255}, 5, 80, 2.5f);
+            }
+        }
+
+        /* Energy regen: 20/sec when H is not held */
+        if (!IsKeyDown(KEY_H))
+        {
+            G.energy += 20.0f * dt;
+            if (G.energy > G.maxEnergy) G.energy = G.maxEnergy;
         }
     }
     for (int i = 0; i < MAX_BULLETS; i++)
@@ -679,6 +715,8 @@ void UpdateGame(float dt)
             G.score++;
         }
     }
+    UpdateWeaponProjs(dt);
+    CheckWeaponCollisions();
     UpdateParticles(dt);
 }
 
@@ -692,6 +730,33 @@ void DrawHPBar(Player p)
     DrawRectangle(x, y, (int)(bw * frac), bh, hc);
     DrawRectangleLinesEx((Rectangle){x, y, bw, bh}, 1, WHITE);
     DrawText(TextFormat("HP %d/%d", p.hp, p.maxHp), x + bw + 8, y - 2, 16, WHITE);
+}
+
+void DrawEnergyBar(void)
+{
+    int bw = 120, bh = 8, x = 10, y = SH - 15;
+    DrawRectangle(x, y, bw, bh, (Color){20, 20, 40, 200});
+    float frac = G.energy / G.maxEnergy;
+    /* Neon blue-purple gradient feel */
+    Color ec = frac > 0.4f ? (Color){80, 140, 255, 255}
+                           : (Color){180, 60, 255, 255};
+    int fillW = (int)(bw * frac);
+    DrawRectangle(x, y, fillW, bh, ec);
+    /* Glow when full */
+    if (frac > 0.99f)
+        DrawRectangle(x, y, bw, bh, CAlpha((Color){160, 200, 255, 255},
+                      (unsigned char)(80 + (int)(40 * sinf((float)GetTime() * 6)))));
+    DrawRectangleLinesEx((Rectangle){(float)x, (float)y, (float)bw, (float)bh}, 1,
+                         CAlpha((Color){120, 160, 255, 255}, 200));
+    DrawText(TextFormat("E %d", (int)G.energy), x + bw + 8, y - 1, 12,
+             (Color){120, 160, 255, 255});
+    /* Low energy warning */
+    if (frac < 0.2f && frac > 0)
+    {
+        float blink = sinf((float)GetTime() * 10);
+        if (blink > 0)
+            DrawText("LOW", x + bw + 40, y - 1, 12, RED);
+    }
 }
 
 void DrawGameplay(void)
@@ -727,6 +792,7 @@ void DrawGameplay(void)
         DrawRectangle((int)bp.x - 1, (int)bp.y - 5, 2, 10, WHITE);
         DrawCircleV(bp, 5, CAlpha(bc, 60));
     }
+    DrawWeaponEffects();
     if (G.player.alive)
     {
         if (G.player.damageFlash > 0)
@@ -776,6 +842,7 @@ void DrawGameplay(void)
         DrawText(st, SW - MeasureText(st, 20) - 14, 40, 20, (Color){100, 200, 255, 255});
     }
     DrawHPBar(G.player);
+    DrawEnergyBar();
     EndDrawing();
 }
 

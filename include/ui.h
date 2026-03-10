@@ -7,6 +7,7 @@
 void ScreenLogo(float dt);
 void ScreenMenu(float dt);
 void ScreenShipSelect(float dt);
+void ScreenWeaponSelect(float dt);
 void ScreenPause(float dt);
 void ScreenGameOver(float dt);
 void ScreenOptions(float dt);

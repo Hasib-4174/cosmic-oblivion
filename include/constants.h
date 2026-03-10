@@ -23,6 +23,7 @@ typedef enum
     SCREEN_LOGO,
     SCREEN_MAIN_MENU,
     SCREEN_SHIP_SELECT,
+    SCREEN_WEAPON_SELECT,
     SCREEN_GAMEPLAY,
     SCREEN_PAUSE,
     SCREEN_GAME_OVER,
@@ -41,6 +42,26 @@ typedef enum
     METEOR_MEDIUM,
     METEOR_LARGE
 } MeteorSize;
+typedef enum
+{
+    WEAPON_LASER,
+    WEAPON_RAILGUN,
+    WEAPON_FLAK,
+    WEAPON_TESLA,
+    WEAPON_SINGULARITY,
+    WEAPON_WAVE
+} WeaponType;
+
+typedef struct
+{
+    Vector2 pos, vel;
+    float life;
+    float baseX;
+    float stateTime;
+    int state;
+    WeaponType wtype;
+    bool active;
+} WeaponProj;
 
 typedef struct
 {
@@ -148,7 +169,9 @@ typedef struct
     float shakeTimer, shakeMag;
     float logoTimer, slowMoTimer;
     ShipType selectedShip;
-    int menuSel, pauseSel, goSel, shipSel, optSel, audioSel;
+    WeaponType selectedWeapon;
+    WeaponProj weaponProjs[MAX_BULLETS];
+    int menuSel, pauseSel, goSel, shipSel, weaponSel, optSel, audioSel;
     bool gameOver;
 
     /* Audio volumes (3 categories) */
@@ -208,11 +231,15 @@ typedef struct
     Sound sfxShieldOn;
 
     /* Previous selection trackers (for button hover sound deduplication) */
-    int prevMenuSel, prevPauseSel, prevGoSel, prevOptSel, prevAudioSel, prevShipSel;
+    int prevMenuSel, prevPauseSel, prevGoSel, prevOptSel, prevAudioSel, prevShipSel, prevWeaponSel;
 
     /* Shield pickup system */
     bool playerShieldActive;
     float playerShieldDuration;
+
+    /* Special weapon energy */
+    float energy, maxEnergy;
+    float weaponCooldown;
 } GameState;
 
 #endif
