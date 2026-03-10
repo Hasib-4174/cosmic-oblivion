@@ -11,6 +11,7 @@
 #include "include/floatingtext.h"
 #include "include/enemy.h"
 #include "include/collision.h"
+#include "include/weapon.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -192,6 +193,7 @@ void InitGame(void)
     G.playerShieldDuration = 0;
     G.enginePlaying = false;
     InitPlayer();
+    InitWeaponProjs();
 }
 
 void UpdateGame(float dt)
@@ -292,50 +294,69 @@ void UpdateGame(float dt)
         pl->fireCooldown -= dt;
         if (IsKeyDown(KEY_SPACE) && pl->fireCooldown <= 0)
         {
-            pl->fireCooldown = pl->fireRate;
-            if (pl->type == SHIP_TITAN)
+            /* Advanced weapons use their own cooldown */
+            if (G.selectedWeapon != WEAPON_LASER)
             {
-                for (int d = -1; d <= 1; d++)
-                {
-                    for (int i = 0; i < MAX_BULLETS; i++)
-                    {
-                        if (!G.bullets[i].active)
-                        {
-                            G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, 600, true, false};
-                            PlayFiringSound();
-                            break;
-                        }
-                    }
-                }
-            }
-            else if (pl->type == SHIP_DESTROYER)
-            {
-                for (int d = -1; d <= 1; d += 2)
-                {
-                    for (int i = 0; i < MAX_BULLETS; i++)
-                    {
-                        if (!G.bullets[i].active)
-                        {
-                            G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, 550, true, false};
-                            PlayFiringSound();
-                            break;
-                        }
-                    }
-                }
+                float wpnCd = 1.0f;
+                if (G.selectedWeapon == WEAPON_RAILGUN)      wpnCd = 1.0f;
+                else if (G.selectedWeapon == WEAPON_FLAK)    wpnCd = 0.5f;
+                else if (G.selectedWeapon == WEAPON_TESLA)   wpnCd = 0.25f;
+                else if (G.selectedWeapon == WEAPON_SINGULARITY) wpnCd = 1.2f;
+                else if (G.selectedWeapon == WEAPON_WAVE)    wpnCd = 0.35f;
+                pl->fireCooldown = wpnCd;
+                FireAdvancedWeapon();
+                PlayFiringSound();
+                SpawnP((Vector2){pl->pos.x, pl->pos.y - 28},
+                       (Color){200, 230, 255, 255}, 3, 60, 2);
             }
             else
             {
-                for (int i = 0; i < MAX_BULLETS; i++)
+                /* Original laser system — completely unchanged */
+                pl->fireCooldown = pl->fireRate;
+                if (pl->type == SHIP_TITAN)
                 {
-                    if (!G.bullets[i].active)
+                    for (int d = -1; d <= 1; d++)
                     {
-                        G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, 650, true, false};
-                        PlayFiringSound();
-                        break;
+                        for (int i = 0; i < MAX_BULLETS; i++)
+                        {
+                            if (!G.bullets[i].active)
+                            {
+                                G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, 600, true, false};
+                                PlayFiringSound();
+                                break;
+                            }
+                        }
                     }
                 }
+                else if (pl->type == SHIP_DESTROYER)
+                {
+                    for (int d = -1; d <= 1; d += 2)
+                    {
+                        for (int i = 0; i < MAX_BULLETS; i++)
+                        {
+                            if (!G.bullets[i].active)
+                            {
+                                G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, 550, true, false};
+                                PlayFiringSound();
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < MAX_BULLETS; i++)
+                    {
+                        if (!G.bullets[i].active)
+                        {
+                            G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, 650, true, false};
+                            PlayFiringSound();
+                            break;
+                        }
+                    }
+                }
+                SpawnP((Vector2){pl->pos.x, pl->pos.y - 28}, (Color){200, 230, 255, 255}, 3, 60, 2);
             }
-            SpawnP((Vector2){pl->pos.x, pl->pos.y - 28}, (Color){200, 230, 255, 255}, 3, 60, 2);
         }
     }
     for (int i = 0; i < MAX_BULLETS; i++)
@@ -679,6 +700,8 @@ void UpdateGame(float dt)
             G.score++;
         }
     }
+    UpdateWeaponProjs(dt);
+    CheckWeaponCollisions();
     UpdateParticles(dt);
 }
 
@@ -727,6 +750,7 @@ void DrawGameplay(void)
         DrawRectangle((int)bp.x - 1, (int)bp.y - 5, 2, 10, WHITE);
         DrawCircleV(bp, 5, CAlpha(bc, 60));
     }
+    DrawWeaponEffects();
     if (G.player.alive)
     {
         if (G.player.damageFlash > 0)
