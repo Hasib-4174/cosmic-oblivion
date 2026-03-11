@@ -174,10 +174,24 @@ void InitGame(void)
     InitFloatingTexts();
     InitEnemies();
     G.meteorTimer = 0;
-    G.meteorRate = 1.2f;
+    /* Set initial rates based on difficulty */
+    if (G.difficulty == DIFF_EASY)
+    {
+        G.meteorRate = 1.6f;
+        G.enemyRate = 7.0f;
+    }
+    else if (G.difficulty == DIFF_HARD)
+    {
+        G.meteorRate = 0.8f;
+        G.enemyRate = 3.5f;
+    }
+    else
+    {
+        G.meteorRate = 1.2f;
+        G.enemyRate = 5.0f;
+    }
     G.meteorSpeedMul = 1.0f;
     G.enemyTimer = 0;
-    G.enemyRate = 5.0f;
     G.scoreTimer = 0;
     G.gameTime = 0;
     G.score = 0;
@@ -208,7 +222,27 @@ void UpdateGame(float dt)
     }
     Player *pl = &G.player;
     G.gameTime += dt;
-    G.meteorRate = Clampf(1.2f - G.gameTime * 0.008f, 0.3f, 1.2f);
+    /* Difficulty-scaled ramp for meteor rate */
+    float rampSpeed, rateFloor, initRate;
+    if (G.difficulty == DIFF_EASY)
+    {
+        rampSpeed = 0.004f;
+        rateFloor = 0.5f;
+        initRate = 1.6f;
+    }
+    else if (G.difficulty == DIFF_HARD)
+    {
+        rampSpeed = 0.012f;
+        rateFloor = 0.2f;
+        initRate = 0.8f;
+    }
+    else
+    {
+        rampSpeed = 0.008f;
+        rateFloor = 0.3f;
+        initRate = 1.2f;
+    }
+    G.meteorRate = Clampf(initRate - G.gameTime * rampSpeed, rateFloor, initRate);
     G.meteorSpeedMul = 1.0f + G.gameTime * 0.005f;
     if (G.shakeTimer > 0)
         G.shakeTimer -= dt;
@@ -439,7 +473,10 @@ void UpdateGame(float dt)
                     SpawnP(G.meteors[mi].pos, (Color){255, 220, 100, 255}, 8, 160, 2);
                     int bonus = (G.meteors[mi].size == METEOR_LARGE) ? 30 : (G.meteors[mi].size == METEOR_MEDIUM) ? 20
                                                                                                                   : 10;
-                    G.score += (int)(bonus * G.comboMultiplier);
+                    /* Difficulty score multiplier */
+                    float scoreMul = (G.difficulty == DIFF_EASY) ? 0.7f :
+                                     (G.difficulty == DIFF_HARD) ? 1.5f : 1.0f;
+                    G.score += (int)(bonus * G.comboMultiplier * scoreMul);
                     G.comboTimer = 2.0f;
                     G.comboMultiplier = Clampf(G.comboMultiplier + 0.25f, 1, 5);
                     G.meteorsDestroyed++;
@@ -462,6 +499,10 @@ void UpdateGame(float dt)
                     if (G.meteors[mi].size >= METEOR_MEDIUM)
                     {
                         int chance = (G.meteors[mi].size == METEOR_LARGE) ? 20 : 8;
+                        /* Difficulty drop multiplier */
+                        float dropMul = (G.difficulty == DIFF_EASY) ? 1.5f :
+                                        (G.difficulty == DIFF_HARD) ? 0.5f : 1.0f;
+                        chance = (int)(chance * dropMul);
                         if (GetRandomValue(0, 99) < chance)
                         {
                             /* 50/50 health vs shield */
@@ -502,12 +543,20 @@ void UpdateGame(float dt)
                     if (G.enemies[ei].type == SHIP_DESTROYER) points = 500;
                     else if (G.enemies[ei].type == SHIP_TITAN) points = 1500;
                     
+                    /* Difficulty score multiplier */
+                    float scoreMul = (G.difficulty == DIFF_EASY) ? 0.7f :
+                                     (G.difficulty == DIFF_HARD) ? 1.5f : 1.0f;
+                    points = (int)(points * scoreMul);
                     G.score += points;
                     G.enemiesDestroyed++;
                     
                     // Drop health or shield pickup
                     int dropChance = (G.enemies[ei].type == SHIP_TITAN) ? 40 : 
                                      (G.enemies[ei].type == SHIP_DESTROYER) ? 15 : 5;
+                    /* Difficulty drop multiplier */
+                    float dropMul = (G.difficulty == DIFF_EASY) ? 1.5f :
+                                    (G.difficulty == DIFF_HARD) ? 0.5f : 1.0f;
+                    dropChance = (int)(dropChance * dropMul);
                     
                     if (GetRandomValue(0, 99) < dropChance)
                     {

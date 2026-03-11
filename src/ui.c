@@ -409,14 +409,9 @@ void ScreenWeaponSelect(float dt)
         PlayBtnSelect();
         /* weaponSel 0..4 maps to WEAPON_RAILGUN(1)..WEAPON_WAVE(5) */
         G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
-        StopMusicStream(G.bgmMenu);
-        if (G.audioEnabled)
-        {
-            PlayMusicStream(G.bgmGameplay);
-            SetMusicVolume(G.bgmGameplay, G.bgmVolume);
-        }
-        InitGame();
-        G.screen = SCREEN_GAMEPLAY;
+        G.screen = SCREEN_DIFFICULTY_SELECT;
+        G.diffSel = 1; /* Default to NORMAL */
+        G.prevDiffSel = -1;
     }
     if (IsKeyPressed(KEY_ESCAPE))
     {
@@ -647,6 +642,10 @@ void ScreenGameOver(float dt)
     DrawText(TextFormat("High Score: %d", G.highscore), (SW - MeasureText(TextFormat("High Score: %d", G.highscore), 24)) / 2, 280, 24, GOLD);
     DrawText(TextFormat("Meteors Destroyed: %d", G.meteorsDestroyed), (SW - MeasureText(TextFormat("Meteors Destroyed: %d", G.meteorsDestroyed), 20)) / 2, 320, 20, LIGHTGRAY);
     DrawText(TextFormat("Enemies Defeated: %d", G.enemiesDestroyed), (SW - MeasureText(TextFormat("Enemies Defeated: %d", G.enemiesDestroyed), 20)) / 2, 350, 20, RED);
+    const char *diffNames[] = {"EASY", "NORMAL", "HARD"};
+    Color diffColors[] = {{100, 220, 100, 255}, {220, 200, 80, 255}, {255, 80, 60, 255}};
+    const char *diffLabel = TextFormat("Difficulty: %s", diffNames[G.difficulty]);
+    DrawText(diffLabel, (SW - MeasureText(diffLabel, 20)) / 2, 380, 20, diffColors[G.difficulty]);
     for (int i = 0; i < 2; i++)
         DrawBtn(G.goBtns[i], i == G.goSel);
     DrawAudioToggle();
@@ -822,6 +821,116 @@ void ScreenAudio(float dt)
         }
     }
 
+    DrawAudioToggle();
+    EndDrawing();
+}
+
+void ScreenDifficultySelect(float dt)
+{
+    UpdateStars(dt);
+    int oldSel = G.diffSel;
+    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+        G.diffSel = (G.diffSel + 2) % 3;
+    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+        G.diffSel = (G.diffSel + 1) % 3;
+
+    /* Play hover sound on selection change */
+    if (G.diffSel != oldSel)
+    {
+        if (G.prevDiffSel >= 0)
+            PlayBtnHover();
+        G.prevDiffSel = G.diffSel;
+    }
+
+    if (IsKeyPressed(KEY_ENTER))
+    {
+        PlayBtnSelect();
+        G.difficulty = (DifficultyLevel)G.diffSel;
+        StopMusicStream(G.bgmMenu);
+        if (G.audioEnabled)
+        {
+            PlayMusicStream(G.bgmGameplay);
+            SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+        }
+        InitGame();
+        G.screen = SCREEN_GAMEPLAY;
+    }
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        G.screen = SCREEN_WEAPON_SELECT;
+        G.prevWeaponSel = -1;
+    }
+
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
+    DrawStars();
+    DrawText("SELECT DIFFICULTY",
+             (SW - MeasureText("SELECT DIFFICULTY", 36)) / 2, 40, 36, WHITE);
+    DrawText("Affects enemy stats, spawn rates, and difficulty scaling",
+             (SW - MeasureText("Affects enemy stats, spawn rates, and difficulty scaling", 14)) / 2,
+             82, 14, (Color){160, 180, 200, 255});
+
+    const char *names[3] = {"EASY", "NORMAL", "HARD"};
+    const char *descs[3] = {
+        "Relaxed pace\nSlower enemies\nFewer spawns",
+        "Balanced challenge\nStandard speeds\nNormal spawns",
+        "Intense action\nFaster enemies\nMore spawns"
+    };
+    const char *stats[3] = {
+        "Meteors: Slow  Enemies: Few",
+        "Meteors: Med   Enemies: Med",
+        "Meteors: Fast  Enemies: Many"
+    };
+    Color cardColors[3] = {
+        {30, 100, 50, 200},
+        {50, 60, 120, 200},
+        {120, 30, 30, 200}
+    };
+    Color borderColors[3] = {
+        {100, 220, 100, 255},
+        {100, 150, 255, 255},
+        {255, 80, 60, 255}
+    };
+
+    float t = (float)GetTime();
+    for (int i = 0; i < 3; i++)
+    {
+        float cx = SW / 2 + (i - 1) * 280;
+        bool sel = i == G.diffSel;
+        Color bc = sel ? cardColors[i] : (Color){20, 30, 50, 180};
+        Rectangle card = {cx - 110, 140, 220, 380};
+        DrawRectangleRounded(card, 0.1f, 8, bc);
+        if (sel)
+            DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, borderColors[i]);
+        else
+            DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
+
+        /* Difficulty icon: circles indicating intensity */
+        int dots = i + 1;
+        int dotY = 220;
+        int dotSpacing = 24;
+        int dotStartX = (int)cx - (dots - 1) * dotSpacing / 2;
+        for (int d = 0; d < dots; d++)
+        {
+            float pulse = 0.7f + 0.3f * sinf(t * 3.0f + d * 1.5f);
+            int dotX = dotStartX + d * dotSpacing;
+            DrawCircle(dotX, dotY, (int)(10 * pulse), borderColors[i]);
+            DrawCircle(dotX, dotY, 5, WHITE);
+        }
+
+        int nw = MeasureText(names[i], 26);
+        DrawText(names[i], (int)(cx - nw / 2), 270, 26, WHITE);
+        DrawText(stats[i], (int)(cx - 100), 310, 13, LIGHTGRAY);
+        DrawText(descs[i], (int)(cx - 90), 345, 14, (Color){180, 200, 220, 255});
+        if (sel)
+        {
+            DrawText("[ SELECTED ]", (int)(cx - MeasureText("[ SELECTED ]", 18) / 2), 480, 18, GOLD);
+        }
+    }
+    DrawText("< A/D or Arrows to browse  |  ENTER to start  |  ESC back >",
+             (SW - MeasureText("< A/D or Arrows to browse  |  ENTER to start  |  ESC back >", 16)) / 2,
+             SH - 40, 16, (Color){140, 160, 180, 255});
     DrawAudioToggle();
     EndDrawing();
 }
