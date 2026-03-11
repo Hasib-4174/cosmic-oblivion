@@ -125,9 +125,10 @@ int main(void)
                 G.screen = SCREEN_PAUSE;
                 G.pauseSel = 0;
                 G.prevPauseSel = -1;
-                G.pauseBtns[0] = MkBtn(SW / 2 - 100, 300, 200, 48, "RESUME");
-                G.pauseBtns[1] = MkBtn(SW / 2 - 100, 360, 200, 48, "MAIN MENU");
-                G.pauseBtns[2] = MkBtn(SW / 2 - 100, 420, 200, 48, "EXIT");
+                G.pauseBtns[0] = MkBtn(SW / 2 - 140, 300, 280, 50, "RESUME");
+                G.pauseBtns[1] = MkBtn(SW / 2 - 140, 380, 280, 50, "OPTIONS");
+                G.pauseBtns[2] = MkBtn(SW / 2 - 140, 460, 280, 50, "MAIN MENU");
+                G.pauseBtns[3] = MkBtn(SW / 2 - 140, 540, 280, 50, "EXIT");
             }
             UpdateStars(dt);
             if (G.screen == SCREEN_GAMEPLAY)

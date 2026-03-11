@@ -209,6 +209,7 @@ void InitGame(void)
     G.energy = 100.0f;
     G.maxEnergy = 100.0f;
     G.weaponCooldown = 0;
+    G.isFiring = false;
     InitPlayer();
     InitWeaponProjs();
 }
@@ -329,7 +330,19 @@ void UpdateGame(float dt)
             SpawnP((Vector2){pl->pos.x + Rf(-4, 4), pl->pos.y + 22}, ec, 1, 40, 2.5f);
         }
         pl->fireCooldown -= dt;
-        if (IsKeyDown(KEY_SPACE) && pl->fireCooldown <= 0)
+
+        bool firePressed = false;
+        if (G.fireMode == FIRE_MODE_HOLD)
+        {
+            firePressed = IsKeyDown(KEY_SPACE);
+        }
+        else if (G.fireMode == FIRE_MODE_TOGGLE)
+        {
+            if (IsKeyPressed(KEY_SPACE)) G.isFiring = !G.isFiring;
+            firePressed = G.isFiring;
+        }
+
+        if (firePressed && pl->fireCooldown <= 0)
         {
             /* Original laser system — completely unchanged */
             pl->fireCooldown = pl->fireRate;

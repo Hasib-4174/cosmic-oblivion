@@ -168,9 +168,9 @@ void ScreenLogo(float dt)
             PlayMusicStream(G.bgmMenu);
             SetMusicVolume(G.bgmMenu, G.bgmVolume);
         }
-        G.menuBtns[0] = MkBtn(SW / 2 - 110, 300, 220, 50, "PLAY GAME");
-        G.menuBtns[1] = MkBtn(SW / 2 - 110, 390, 220, 50, "OPTIONS");
-        G.menuBtns[2] = MkBtn(SW / 2 - 110, 480, 220, 50, "EXIT");
+        G.menuBtns[0] = MkBtn(SW / 2 - 140, 300, 280, 50, "PLAY GAME");
+        G.menuBtns[1] = MkBtn(SW / 2 - 140, 380, 280, 50, "OPTIONS");
+        G.menuBtns[2] = MkBtn(SW / 2 - 140, 460, 280, 50, "EXIT");
         G.menuSel = 0;
         G.prevMenuSel = -1;
     }
@@ -220,9 +220,11 @@ void ScreenMenu(float dt)
         }
         else if (G.menuSel == 1)
         {
+            G.prevScreen = SCREEN_MAIN_MENU;
             G.screen = SCREEN_OPTIONS;
-            G.optBtns[0] = MkBtn(SW / 2 - 110, 320, 220, 50, "AUDIO");
-            G.optBtns[1] = MkBtn(SW / 2 - 110, 390, 220, 50, "BACK");
+            G.optBtns[0] = MkBtn(SW / 2 - 140, 300, 280, 50, "AUDIO");
+            G.optBtns[1] = MkBtn(SW / 2 - 140, 370, 280, 50, "FIRE MODE: HOLD");
+            G.optBtns[2] = MkBtn(SW / 2 - 140, 440, 280, 50, "BACK");
             G.optSel = 0;
             G.prevOptSel = -1;
         }
@@ -235,7 +237,6 @@ void ScreenMenu(float dt)
     ClearBackground((Color){4, 4, 16, 255});
     DrawNebula();
     DrawStars();
-    DrawParticles();
     DrawTitle((float)GetTime());
     for (int i = 0; i < 3; i++)
         DrawBtn(G.menuBtns[i], i == G.menuSel);
@@ -535,12 +536,12 @@ void ScreenPause(float dt)
 {
     (void)dt;
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
-        G.pauseSel = (G.pauseSel + 1) % 3;
+        G.pauseSel = (G.pauseSel + 1) % 4;
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
-        G.pauseSel = (G.pauseSel + 2) % 3;
+        G.pauseSel = (G.pauseSel + 3) % 4;
 
     /* Update buttons and track mouse hover → selection */
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         UpdateBtn(&G.pauseBtns[i], dt);
         if (G.pauseBtns[i].hovered)
@@ -554,7 +555,7 @@ void ScreenPause(float dt)
 
     bool enter = IsKeyPressed(KEY_ENTER);
     bool escape = IsKeyPressed(KEY_ESCAPE);
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         if (G.pauseBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
@@ -571,6 +572,16 @@ void ScreenPause(float dt)
         }
         else if (G.pauseSel == 1)
         {
+            G.prevScreen = SCREEN_PAUSE;
+            G.screen = SCREEN_OPTIONS;
+            G.optBtns[0] = MkBtn(SW / 2 - 140, 300, 280, 50, "AUDIO");
+            G.optBtns[1] = MkBtn(SW / 2 - 140, 370, 280, 50, "FIRE MODE: HOLD");
+            G.optBtns[2] = MkBtn(SW / 2 - 140, 440, 280, 50, "BACK");
+            G.optSel = 0;
+            G.prevOptSel = -1;
+        }
+        else if (G.pauseSel == 2)
+        {
             /* Return to main menu: stop gameplay BGM, start menu BGM */
             StopMusicStream(G.bgmGameplay);
             if (G.audioEnabled)
@@ -581,7 +592,7 @@ void ScreenPause(float dt)
             G.screen = SCREEN_MAIN_MENU;
             G.prevMenuSel = -1;
         }
-        else
+        else if (G.pauseSel == 3)
             CloseWindow();
     }
     else if (escape)
@@ -611,7 +622,7 @@ void ScreenPause(float dt)
     const char *pt = "PAUSED";
     int pw = MeasureText(pt, 50);
     DrawText(pt, (SW - pw) / 2, 180, 50, WHITE);
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
         DrawBtn(G.pauseBtns[i], i == G.pauseSel);
     DrawAudioToggle();
     EndDrawing();
@@ -703,13 +714,17 @@ void ScreenOptions(float dt)
 {
     UpdateStars(dt);
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
-        G.optSel = (G.optSel + 1) % 2;
+        G.optSel = (G.optSel + 1) % 3;
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
-        G.optSel = (G.optSel + 1) % 2;
+        G.optSel = (G.optSel + 2) % 3;
 
     /* Update buttons and track mouse hover → selection */
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
+        /* Update text for fire mode button */
+        if (i == 1)
+            G.optBtns[i].text = (G.fireMode == FIRE_MODE_HOLD) ? "FIRE MODE: HOLD" : "FIRE MODE: TOGGLE";
+
         UpdateBtn(&G.optBtns[i], dt);
         if (G.optBtns[i].hovered)
             G.optSel = i;
@@ -721,7 +736,7 @@ void ScreenOptions(float dt)
     G.prevOptSel = G.optSel;
 
     bool enter = IsKeyPressed(KEY_ENTER);
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
         if (G.optBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
@@ -731,8 +746,9 @@ void ScreenOptions(float dt)
     }
     if (IsKeyPressed(KEY_ESCAPE))
     {
-        G.screen = SCREEN_MAIN_MENU;
-        G.prevMenuSel = -1;
+        G.screen = G.prevScreen;
+        if (G.screen == SCREEN_MAIN_MENU) G.prevMenuSel = -1;
+        else if (G.screen == SCREEN_PAUSE) G.prevPauseSel = -1;
     }
     if (enter)
     {
@@ -746,8 +762,13 @@ void ScreenOptions(float dt)
         }
         else if (G.optSel == 1)
         {
-            G.screen = SCREEN_MAIN_MENU;
-            G.prevMenuSel = -1;
+            G.fireMode = (G.fireMode == FIRE_MODE_HOLD) ? FIRE_MODE_TOGGLE : FIRE_MODE_HOLD;
+        }
+        else if (G.optSel == 2)
+        {
+            G.screen = G.prevScreen;
+            if (G.screen == SCREEN_MAIN_MENU) G.prevMenuSel = -1;
+            else if (G.screen == SCREEN_PAUSE) G.prevPauseSel = -1;
         }
     }
     BeginDrawing();
@@ -755,7 +776,7 @@ void ScreenOptions(float dt)
     DrawNebula();
     DrawStars();
     DrawTitle((float)GetTime());
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
         DrawBtn(G.optBtns[i], i == G.optSel);
     DrawAudioToggle();
     EndDrawing();
