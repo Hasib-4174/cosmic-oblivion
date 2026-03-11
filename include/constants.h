@@ -59,6 +59,12 @@ typedef enum
     DIFF_HARD
 } DifficultyLevel;
 
+typedef enum
+{
+    FIRE_MODE_HOLD,
+    FIRE_MODE_TOGGLE
+} FireMode;
+
 typedef struct
 {
     Vector2 pos, vel;
@@ -158,7 +164,7 @@ typedef struct
 
 typedef struct
 {
-    GameScreen screen;
+    GameScreen screen, prevScreen;
     Player player;
     Bullet bullets[MAX_BULLETS];
     Meteor meteors[MAX_METEORS];
@@ -195,7 +201,7 @@ typedef struct
     int prevDiffSel;
 
     /* Buttons */
-    Button menuBtns[3], pauseBtns[3], goBtns[2], optBtns[2], diffBtns[3];
+    Button menuBtns[3], pauseBtns[4], goBtns[2], optBtns[3], diffBtns[3];
     Button audioBackBtn;
 
     /* Firing sound pool */
@@ -252,6 +258,10 @@ typedef struct
     /* Special weapon energy */
     float energy, maxEnergy;
     float weaponCooldown;
+
+    /* Fire mode */
+    FireMode fireMode;
+    bool isFiring;
 } GameState;
 
 #endif
