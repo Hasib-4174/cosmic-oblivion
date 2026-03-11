@@ -251,6 +251,27 @@ void ScreenShipSelect(float dt)
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
         G.shipSel = (G.shipSel + 1) % 3;
 
+    /* Mouse hover on ship cards */
+    Vector2 mouse = GetMousePosition();
+    for (int i = 0; i < 3; i++)
+    {
+        float cx = SW / 2 + (i - 1) * 280.0f;
+        Rectangle card = {cx - 110, 160, 220, 380};
+        if (CheckCollisionPointRec(mouse, card))
+        {
+            if (G.shipSel != i)
+                G.shipSel = i;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                PlayBtnSelect();
+                G.selectedShip = G.shipSel;
+                G.screen = SCREEN_WEAPON_SELECT;
+                G.weaponSel = 0;
+                G.prevWeaponSel = -1;
+            }
+        }
+    }
+
     /* Play hover sound on ship change */
     if (G.shipSel != oldSel)
     {
@@ -285,11 +306,14 @@ void ScreenShipSelect(float dt)
     {
         float cx = SW / 2 + (i - 1) * 280;
         bool sel = i == G.shipSel;
-        Color bc = sel ? (Color){40, 80, 180, 200} : (Color){20, 30, 50, 180};
+        bool hov = CheckCollisionPointRec(mouse, (Rectangle){cx - 110, 160, 220, 380});
+        Color bc = sel ? (Color){40, 80, 180, 200} : (hov ? (Color){30, 55, 110, 200} : (Color){20, 30, 50, 180});
         Rectangle card = {cx - 110, 160, 220, 380};
         DrawRectangleRounded(card, 0.1f, 8, bc);
         if (sel)
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, (Color){100, 180, 255, 255});
+        else if (hov)
+            DrawRectangleRoundedLinesEx(card, 0.1f, 8, 2, (Color){80, 130, 200, 200});
         else
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
         DrawShipShape((Vector2){cx, 300}, (ShipType)i, t * 3 + i, true);
@@ -302,7 +326,7 @@ void ScreenShipSelect(float dt)
             DrawText("[ SELECTED ]", (int)(cx - MeasureText("[ SELECTED ]", 18) / 2), 520, 18, GOLD);
         }
     }
-    DrawText("< A/D or Arrows to browse  |  ENTER to confirm  |  ESC to go back >", (SW - MeasureText("< A/D or Arrows to browse  |  ENTER to confirm  |  ESC to go back >", 16)) / 2, SH - 40, 16, (Color){140, 160, 180, 255});
+    DrawText("< A/D or Arrows  |  Click or ENTER to confirm  |  ESC to go back >", (SW - MeasureText("< A/D or Arrows  |  Click or ENTER to confirm  |  ESC to go back >", 16)) / 2, SH - 40, 16, (Color){140, 160, 180, 255});
     DrawAudioToggle();
     EndDrawing();
 }
@@ -399,6 +423,31 @@ void ScreenWeaponSelect(float dt)
         G.weaponSel = (G.weaponSel + 4) % 5;
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
         G.weaponSel = (G.weaponSel + 1) % 5;
+
+    /* Mouse hover on weapon cards */
+    int cw = 160, sp = 20;
+    int tw2 = 5 * cw + 4 * sp;
+    int sx = (SW - tw2) / 2;
+    Vector2 mouseW = GetMousePosition();
+    for (int i = 0; i < 5; i++)
+    {
+        int cx = sx + i * (cw + sp) + cw / 2;
+        Rectangle card = {(float)(cx - cw / 2), 120, (float)cw, 310};
+        if (CheckCollisionPointRec(mouseW, card))
+        {
+            if (G.weaponSel != i)
+                G.weaponSel = i;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                PlayBtnSelect();
+                G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
+                G.screen = SCREEN_DIFFICULTY_SELECT;
+                G.diffSel = 1;
+                G.prevDiffSel = -1;
+            }
+        }
+    }
+
     if (G.weaponSel != oldSel)
     {
         if (G.prevWeaponSel >= 0) PlayBtnHover();
@@ -444,19 +493,18 @@ void ScreenWeaponSelect(float dt)
     const int costs[5] = {40, 30, 25, 50, 20};
 
     float t = (float)GetTime();
-    int cw = 160, sp = 20;
-    int tw2 = 5 * cw + 4 * sp;
-    int sx = (SW - tw2) / 2;
 
     for (int i = 0; i < 5; i++)
     {
         int cx = sx + i * (cw + sp) + cw / 2;
         bool sel = (i == G.weaponSel);
-        Color bc = sel ? (Color){40, 80, 180, 200} : (Color){20, 30, 50, 180};
+        bool hov = CheckCollisionPointRec(mouseW, (Rectangle){(float)(cx - cw / 2), 120, (float)cw, 310});
+        Color bc = sel ? (Color){40, 80, 180, 200} : (hov ? (Color){30, 55, 110, 200} : (Color){20, 30, 50, 180});
         Rectangle card = {(float)(cx - cw / 2), 120, (float)cw, 310};
         DrawRectangleRounded(card, 0.1f, 8, bc);
-        if (sel) DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, (Color){100, 180, 255, 255});
-        else     DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
+        if (sel)      DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, (Color){100, 180, 255, 255});
+        else if (hov) DrawRectangleRoundedLinesEx(card, 0.1f, 8, 2, (Color){80, 130, 200, 200});
+        else          DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
 
         /* Preview uses indices 1-5 matching WeaponType enum */
         DrawWeaponPreview((Vector2){(float)cx, 220}, i + 1, t);
@@ -476,7 +524,7 @@ void ScreenWeaponSelect(float dt)
         }
     }
 
-    const char *hint = "< A/D or Arrows  |  ENTER to start  |  ESC back >";
+    const char *hint = "< A/D or Arrows  |  Click or ENTER to confirm  |  ESC back >";
     DrawText(hint, (SW - MeasureText(hint, 16)) / 2, SH - 40, 16,
              (Color){140, 160, 180, 255});
     DrawAudioToggle();
@@ -834,6 +882,32 @@ void ScreenDifficultySelect(float dt)
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
         G.diffSel = (G.diffSel + 1) % 3;
 
+    /* Mouse hover on difficulty cards */
+    Vector2 mouseD = GetMousePosition();
+    for (int i = 0; i < 3; i++)
+    {
+        float cx = SW / 2 + (i - 1) * 280.0f;
+        Rectangle card = {cx - 110, 140, 220, 380};
+        if (CheckCollisionPointRec(mouseD, card))
+        {
+            if (G.diffSel != i)
+                G.diffSel = i;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                PlayBtnSelect();
+                G.difficulty = (DifficultyLevel)G.diffSel;
+                StopMusicStream(G.bgmMenu);
+                if (G.audioEnabled)
+                {
+                    PlayMusicStream(G.bgmGameplay);
+                    SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+                }
+                InitGame();
+                G.screen = SCREEN_GAMEPLAY;
+            }
+        }
+    }
+
     /* Play hover sound on selection change */
     if (G.diffSel != oldSel)
     {
@@ -898,11 +972,14 @@ void ScreenDifficultySelect(float dt)
     {
         float cx = SW / 2 + (i - 1) * 280;
         bool sel = i == G.diffSel;
-        Color bc = sel ? cardColors[i] : (Color){20, 30, 50, 180};
+        bool hov = CheckCollisionPointRec(mouseD, (Rectangle){cx - 110, 140, 220, 380});
+        Color bc = sel ? cardColors[i] : (hov ? (Color){30, 45, 80, 200} : (Color){20, 30, 50, 180});
         Rectangle card = {cx - 110, 140, 220, 380};
         DrawRectangleRounded(card, 0.1f, 8, bc);
         if (sel)
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, borderColors[i]);
+        else if (hov)
+            DrawRectangleRoundedLinesEx(card, 0.1f, 8, 2, (Color){80, 130, 200, 200});
         else
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
 
@@ -928,8 +1005,8 @@ void ScreenDifficultySelect(float dt)
             DrawText("[ SELECTED ]", (int)(cx - MeasureText("[ SELECTED ]", 18) / 2), 480, 18, GOLD);
         }
     }
-    DrawText("< A/D or Arrows to browse  |  ENTER to start  |  ESC back >",
-             (SW - MeasureText("< A/D or Arrows to browse  |  ENTER to start  |  ESC back >", 16)) / 2,
+    DrawText("< A/D or Arrows  |  Click or ENTER to start  |  ESC back >",
+             (SW - MeasureText("< A/D or Arrows  |  Click or ENTER to start  |  ESC back >", 16)) / 2,
              SH - 40, 16, (Color){140, 160, 180, 255});
     DrawAudioToggle();
     EndDrawing();
