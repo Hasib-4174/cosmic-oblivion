@@ -28,7 +28,8 @@ typedef enum
     SCREEN_PAUSE,
     SCREEN_GAME_OVER,
     SCREEN_OPTIONS,
-    SCREEN_AUDIO
+    SCREEN_AUDIO,
+    SCREEN_DIFFICULTY_SELECT
 } GameScreen;
 typedef enum
 {
@@ -51,6 +52,12 @@ typedef enum
     WEAPON_SINGULARITY,
     WEAPON_WAVE
 } WeaponType;
+typedef enum
+{
+    DIFF_EASY,
+    DIFF_NORMAL,
+    DIFF_HARD
+} DifficultyLevel;
 
 typedef struct
 {
@@ -171,7 +178,7 @@ typedef struct
     ShipType selectedShip;
     WeaponType selectedWeapon;
     WeaponProj weaponProjs[MAX_BULLETS];
-    int menuSel, pauseSel, goSel, shipSel, weaponSel, optSel, audioSel;
+    int menuSel, pauseSel, goSel, shipSel, weaponSel, optSel, audioSel, diffSel;
     bool gameOver;
 
     /* Audio volumes (3 categories) */
@@ -183,7 +190,12 @@ typedef struct
     bool audioEnabled;
 
     /* Buttons */
-    Button menuBtns[3], pauseBtns[3], goBtns[2], optBtns[2];
+    /* Difficulty */
+    DifficultyLevel difficulty;
+    int prevDiffSel;
+
+    /* Buttons */
+    Button menuBtns[3], pauseBtns[3], goBtns[2], optBtns[2], diffBtns[3];
     Button audioBackBtn;
 
     /* Firing sound pool */

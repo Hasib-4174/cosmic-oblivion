@@ -146,6 +146,9 @@ int main(void)
         case SCREEN_AUDIO:
             ScreenAudio(dt);
             break;
+        case SCREEN_DIFFICULTY_SELECT:
+            ScreenDifficultySelect(dt);
+            break;
         }
         if (G.screen == SCREEN_GAMEPLAY)
             HideCursor();

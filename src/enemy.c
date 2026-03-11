@@ -31,9 +31,23 @@ void SpawnEnemy(void)
 
         // Difficulty scaling based on time
         float diffTime = G.gameTime;
-        float speedScale = 1.0f + diffTime * 0.005f; // +5% speed per 10s
-        float hpBonus = floorf(diffTime / 30.0f);    // +1 HP every 30s
-        float coolBonus = diffTime * 0.003f;         // Fire slightly faster over time
+        float speedScale = 1.0f + diffTime * 0.005f;
+        float hpBonus = floorf(diffTime / 30.0f);
+        float coolBonus = diffTime * 0.003f;
+
+        // Apply difficulty multipliers
+        if (G.difficulty == DIFF_EASY)
+        {
+            speedScale *= 0.7f;
+            hpBonus *= 0.5f;
+            coolBonus *= 0.5f;
+        }
+        else if (G.difficulty == DIFF_HARD)
+        {
+            speedScale *= 1.3f;
+            hpBonus *= 1.5f;
+            coolBonus *= 1.5f;
+        }
 
         // Weighted spawning
         int roll = GetRandomValue(0, 99);
@@ -90,13 +104,17 @@ void UpdateEnemies(float dt)
         }
 
         // Bullet Evasion Logic
-        float timeEvasionBonus = G.gameTime * 0.5f; // +50px radius per 100s
-        float timeWidthBonus = G.gameTime * 0.2f;   // +20px width per 100s
-        float evasionRadius = ((e->type == SHIP_INTERCEPTOR) ? 150.0f : 
-                              (e->type == SHIP_DESTROYER) ? 100.0f : 80.0f) + timeEvasionBonus; 
-        float evasionWidth = 60.0f + timeWidthBonus;
-        float dodgeForce = (e->type == SHIP_INTERCEPTOR) ? 500.0f : 
-                           (e->type == SHIP_DESTROYER) ? 300.0f : 150.0f;
+        float evasionMul = (G.difficulty == DIFF_EASY) ? 0.6f :
+                           (G.difficulty == DIFF_HARD) ? 1.4f : 1.0f;
+        float dodgeMul   = (G.difficulty == DIFF_EASY) ? 0.5f :
+                           (G.difficulty == DIFF_HARD) ? 1.5f : 1.0f;
+        float timeEvasionBonus = G.gameTime * 0.5f;
+        float timeWidthBonus = G.gameTime * 0.2f;
+        float evasionRadius = (((e->type == SHIP_INTERCEPTOR) ? 150.0f : 
+                               (e->type == SHIP_DESTROYER) ? 100.0f : 80.0f) + timeEvasionBonus) * evasionMul;
+        float evasionWidth = (60.0f + timeWidthBonus) * evasionMul;
+        float dodgeForce = ((e->type == SHIP_INTERCEPTOR) ? 500.0f : 
+                            (e->type == SHIP_DESTROYER) ? 300.0f : 150.0f) * dodgeMul;
 
         for (int b = 0; b < MAX_BULLETS; b++)
         {

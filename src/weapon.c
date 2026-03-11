@@ -405,7 +405,12 @@ static void DestroyMeteor(int mi, Vector2 hitPos)
 
     int bonus = (m->size == METEOR_LARGE) ? 30 :
                 (m->size == METEOR_MEDIUM) ? 20 : 10;
-    G.score += (int)(bonus * G.comboMultiplier);
+    
+    /* Difficulty score multiplier */
+    float scoreMul = (G.difficulty == DIFF_EASY) ? 0.7f :
+                     (G.difficulty == DIFF_HARD) ? 1.5f : 1.0f;
+                     
+    G.score += (int)(bonus * G.comboMultiplier * scoreMul);
     G.comboTimer = 2.0f;
     G.comboMultiplier = Clampf(G.comboMultiplier + 0.25f, 1, 5);
     G.meteorsDestroyed++;
@@ -424,6 +429,11 @@ static void DestroyMeteor(int mi, Vector2 hitPos)
     if (m->size >= METEOR_MEDIUM)
     {
         int chance = (m->size == METEOR_LARGE) ? 20 : 8;
+        /* Difficulty drop multiplier */
+        float dropMul = (G.difficulty == DIFF_EASY) ? 1.5f :
+                        (G.difficulty == DIFF_HARD) ? 0.5f : 1.0f;
+        chance = (int)(chance * dropMul);
+        
         if (GetRandomValue(0, 99) < chance)
         {
             if (GetRandomValue(0, 1) == 0) SpawnHealthStarAt(m->pos);
@@ -446,11 +456,22 @@ static void DestroyEnemy(int ei, Vector2 hitPos)
     if (e->type == SHIP_DESTROYER)  points = 500;
     else if (e->type == SHIP_TITAN) points = 1500;
 
+    /* Difficulty score multiplier */
+    float scoreMul = (G.difficulty == DIFF_EASY) ? 0.7f :
+                     (G.difficulty == DIFF_HARD) ? 1.5f : 1.0f;
+    points = (int)(points * scoreMul);
+
     G.score += points;
     G.enemiesDestroyed++;
 
     int dropChance = (e->type == SHIP_TITAN) ? 40 :
                      (e->type == SHIP_DESTROYER) ? 15 : 5;
+                     
+    /* Difficulty drop multiplier */
+    float dropMul = (G.difficulty == DIFF_EASY) ? 1.5f :
+                    (G.difficulty == DIFF_HARD) ? 0.5f : 1.0f;
+    dropChance = (int)(dropChance * dropMul);
+
     if (GetRandomValue(0, 99) < dropChance)
     {
         if (GetRandomValue(0, 1) == 0) SpawnHealthStarAt(e->pos);
