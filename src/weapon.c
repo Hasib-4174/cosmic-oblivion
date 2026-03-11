@@ -130,14 +130,15 @@ void FireAdvancedWeapon(void)
     }
     else if (wt == WEAPON_FLAK)
     {
+        // Faster and longer range flak shell
         SpawnWP((Vector2){pl->pos.x, pl->pos.y - 20},
-                (Vector2){0, -350}, 0.6f, pl->pos.x, 0, WEAPON_FLAK);
+                (Vector2){0, -550}, 2.0f, pl->pos.x, 0, WEAPON_FLAK);
         if (pl->type == SHIP_TITAN || pl->type == SHIP_DESTROYER)
         {
             SpawnWP((Vector2){pl->pos.x - 15, pl->pos.y - 15},
-                    (Vector2){-80, -300}, 0.6f, pl->pos.x, 0, WEAPON_FLAK);
+                    (Vector2){-100, -500}, 2.0f, pl->pos.x, 0, WEAPON_FLAK);
             SpawnWP((Vector2){pl->pos.x + 15, pl->pos.y - 15},
-                    (Vector2){80, -300}, 0.6f, pl->pos.x, 0, WEAPON_FLAK);
+                    (Vector2){100, -500}, 2.0f, pl->pos.x, 0, WEAPON_FLAK);
         }
     }
     else if (wt == WEAPON_TESLA)
@@ -150,12 +151,14 @@ void FireAdvancedWeapon(void)
         for (int i = 0; i < MAX_ENEMIES; i++)
         {
             if (!G.enemies[i].active) continue;
+            if (G.enemies[i].pos.y > pl->pos.y) continue; // ONLY FORWARD
             float d = VDist(pl->pos, G.enemies[i].pos);
             if (d < 350 && d < tDist) { tDist = d; tIdx = i; tType = 0; }
         }
         for (int i = 0; i < MAX_METEORS; i++)
         {
             if (!G.meteors[i].active) continue;
+            if (G.meteors[i].pos.y > pl->pos.y) continue; // ONLY FORWARD
             float d = VDist(pl->pos, G.meteors[i].pos);
             if (d < 350 && d < tDist) { tDist = d; tIdx = i; tType = 1; }
         }
@@ -190,14 +193,16 @@ void FireAdvancedWeapon(void)
                 for (int i = 0; i < MAX_ENEMIES; i++)
                 {
                     if (!G.enemies[i].active || (lastType == 0 && i == lastIdx)) continue;
+                    if (G.enemies[i].pos.y > last.y) continue; // ONLY FORWARD
                     float d = VDist(last, G.enemies[i].pos);
-                    if (d < 250 && d < nDist) { nDist = d; nIdx = i; nType = 0; }
+                    if (d < 300 && d < nDist) { nDist = d; nIdx = i; nType = 0; }
                 }
                 for (int i = 0; i < MAX_METEORS; i++)
                 {
                     if (!G.meteors[i].active || (lastType == 1 && i == lastIdx)) continue;
+                    if (G.meteors[i].pos.y > last.y) continue; // ONLY FORWARD
                     float d = VDist(last, G.meteors[i].pos);
-                    if (d < 250 && d < nDist) { nDist = d; nIdx = i; nType = 1; }
+                    if (d < 300 && d < nDist) { nDist = d; nIdx = i; nType = 1; }
                 }
                 if (nIdx < 0) break;
 
@@ -231,8 +236,9 @@ void FireAdvancedWeapon(void)
     }
     else if (wt == WEAPON_SINGULARITY)
     {
+        // Slower movement, longer duration to reach top
         SpawnWP((Vector2){pl->pos.x, pl->pos.y - 20},
-                (Vector2){0, -250}, 3.0f, pl->pos.x, 0, WEAPON_SINGULARITY);
+                (Vector2){0, -180}, 6.0f, pl->pos.x, 0, WEAPON_SINGULARITY);
     }
     else if (wt == WEAPON_WAVE)
     {
@@ -273,7 +279,9 @@ void UpdateWeaponProjs(float dt)
             p->pos.x += p->vel.x * dt;
             p->pos.y += p->vel.y * dt;
             p->life -= dt;
-            if (p->state == 0 && p->life <= 0)
+            
+            bool reachedEdge = (p->pos.y < 50);
+            if ((p->state == 0 && p->life <= 0) || (p->state == 0 && reachedEdge))
             {
                 /* Explode into 16 fragments */
                 p->active = false;
@@ -296,25 +304,38 @@ void UpdateWeaponProjs(float dt)
         }
         else if (p->wtype == WEAPON_SINGULARITY)
         {
-            p->pos.x += p->vel.x * dt;
-            p->pos.y += p->vel.y * dt;
+            // Two-Phase Logic: Traveling (state 0) -> Stationary (state 1)
+            if (p->state == 0)
+            {
+                p->pos.x += p->vel.x * dt;
+                p->pos.y += p->vel.y * dt;
+                // Transition to stationary near middle-top
+                if (p->pos.y < SH * 0.35f) {
+                    p->state = 1;
+                    p->vel = (Vector2){0, 0};
+                }
+            }
+            
             p->life -= dt;
+            
+            // Only explode (final collapse) if life is truly gone
             if (p->life <= 0)
             {
-                /* Gravity burst: damage everything nearby */
+                /* Gravity burst: huge damage on collapse */
                 p->active = false;
-                SpawnP(p->pos, PURPLE, 35, 300, 4.0f);
-                SpawnP(p->pos, VIOLET, 20, 200, 3.0f);
-                G.shakeTimer = 0.3f;
-                G.shakeMag = 8;
+                SpawnP(p->pos, PURPLE, 80, 500, 7.0f);
+                SpawnP(p->pos, VIOLET, 50, 400, 5.0f);
+                SpawnP(p->pos, WHITE, 20, 200, 3.0f);
+                G.shakeTimer = 0.7f;
+                G.shakeMag = 15;
                 for (int e = 0; e < MAX_ENEMIES; e++)
                 {
                     if (!G.enemies[e].active) continue;
                     float d = VDist(p->pos, G.enemies[e].pos);
-                    if (d < 160)
+                    if (d < 400)
                     {
-                        G.enemies[e].hp -= 3;
-                        SpawnP(G.enemies[e].pos, VIOLET, 8, 120, 2.0f);
+                        G.enemies[e].hp -= 15;
+                        SpawnP(G.enemies[e].pos, VIOLET, 15, 150, 2.5f);
                         if (G.enemies[e].hp <= 0)
                             DestroyEnemy(e, p->pos);
                     }
@@ -323,10 +344,10 @@ void UpdateWeaponProjs(float dt)
                 {
                     if (!G.meteors[m].active) continue;
                     float d = VDist(p->pos, G.meteors[m].pos);
-                    if (d < 160)
+                    if (d < 400)
                     {
-                        G.meteors[m].hp -= 3;
-                        SpawnP(G.meteors[m].pos, VIOLET, 8, 120, 2.0f);
+                        G.meteors[m].hp -= 15;
+                        SpawnP(G.meteors[m].pos, VIOLET, 15, 150, 2.5f);
                         if (G.meteors[m].hp <= 0)
                             DestroyMeteor(m, p->pos);
                     }
@@ -334,16 +355,29 @@ void UpdateWeaponProjs(float dt)
             }
             else
             {
-                /* Pull enemies and meteors toward the orb */
+                /* GLOBAL PULL and CONTACT DESTRUCTION */
+                float pullRange = 1200.0f; 
+                float pullForceBase = (p->state == 1) ? 550.0f : 350.0f;
+                float contactRadius = 25.0f;
+
                 for (int e = 0; e < MAX_ENEMIES; e++)
                 {
                     if (!G.enemies[e].active) continue;
                     float d = VDist(p->pos, G.enemies[e].pos);
-                    if (d < 280 && d > 10)
+                    
+                    // Contact destruction
+                    if (d < contactRadius) {
+                        G.enemies[e].hp = 0;
+                        DestroyEnemy(e, p->pos);
+                        SpawnP(p->pos, WHITE, 5, 100, 1.5f);
+                        continue;
+                    }
+
+                    if (d < pullRange)
                     {
                         float nx = (p->pos.x - G.enemies[e].pos.x) / d;
                         float ny = (p->pos.y - G.enemies[e].pos.y) / d;
-                        float force = 200.0f / (d * 0.01f + 1.0f);
+                        float force = pullForceBase / (d * 0.004f + 1.0f);
                         G.enemies[e].pos.x += nx * force * dt;
                         G.enemies[e].pos.y += ny * force * dt;
                     }
@@ -352,24 +386,28 @@ void UpdateWeaponProjs(float dt)
                 {
                     if (!G.meteors[m].active) continue;
                     float d = VDist(p->pos, G.meteors[m].pos);
-                    if (d < 280 && d > 10)
+
+                    // Contact destruction
+                    if (d < contactRadius) {
+                        G.meteors[m].hp = 0;
+                        DestroyMeteor(m, p->pos);
+                        SpawnP(p->pos, WHITE, 5, 100, 1.5f);
+                        continue;
+                    }
+
+                    if (d < pullRange)
                     {
                         float nx = (p->pos.x - G.meteors[m].pos.x) / d;
                         float ny = (p->pos.y - G.meteors[m].pos.y) / d;
-                        float force = 150.0f / (d * 0.01f + 1.0f);
+                        float force = (pullForceBase * 0.7f) / (d * 0.004f + 1.0f);
                         G.meteors[m].pos.x += nx * force * dt;
                         G.meteors[m].pos.y += ny * force * dt;
                     }
                 }
-                if (GetRandomValue(0, 100) < 60)
-                    SpawnP((Vector2){p->pos.x + Rf(-20, 20),
-                                     p->pos.y + Rf(-20, 20)},
-                           VIOLET, 1, 80, 1.8f);
-                /* Swirling particles */
-                float ang = p->stateTime * 8.0f;
-                SpawnP((Vector2){p->pos.x + cosf(ang) * 25,
-                                 p->pos.y + sinf(ang) * 25},
-                       PURPLE, 1, 50, 1.2f);
+                if (GetRandomValue(0, 100) < 70)
+                    SpawnP((Vector2){p->pos.x + Rf(-25, 25),
+                                     p->pos.y + Rf(-25, 25)},
+                           VIOLET, 1, 100, 2.0f);
             }
         }
         else if (p->wtype == WEAPON_WAVE)
@@ -491,9 +529,9 @@ void CheckWeaponCollisions(void)
         if (!G.weaponProjs[i].active) continue;
         WeaponProj *p = &G.weaponProjs[i];
 
-        /* Railgun and Tesla do instant damage in FireAdvancedWeapon —
-         * their WeaponProjs are visual-only. */
-        if (p->wtype == WEAPON_RAILGUN || p->wtype == WEAPON_TESLA) continue;
+        /* Railgun, Tesla, and Singularity handle their own collision/logic
+         * in UpdateWeaponProjs. */
+        if (p->wtype == WEAPON_RAILGUN || p->wtype == WEAPON_TESLA || p->wtype == WEAPON_SINGULARITY) continue;
 
         bool hit = false;
 
@@ -565,38 +603,73 @@ void DrawWeaponEffects(void)
 
         if (p->wtype == WEAPON_RAILGUN)
         {
-            float a = p->life / 0.25f;
-            unsigned char aa = (unsigned char)(255 * a);
-            /* Outer glow */
-            DrawRectangle((int)(p->pos.x - 20 * a), -100,
-                          (int)(40 * a), (int)(p->pos.y + 100),
-                          CAlpha(SKYBLUE, (unsigned char)(aa / 3)));
-            /* Core beam */
-            DrawRectangle((int)(p->pos.x - 14 * a), -100,
-                          (int)(28 * a), (int)(p->pos.y + 100),
-                          CAlpha(WHITE, aa));
-            DrawRectangle((int)(p->pos.x - 5 * a), -100,
-                          (int)(10 * a), (int)(p->pos.y + 100),
-                          CAlpha(SKYBLUE, aa));
-            /* Impact sparks */
-            for (int k = 0; k < 6; k++)
-                DrawCircleV((Vector2){p->pos.x + Rf(-14*a, 14*a),
-                                      p->pos.y + Rf(-10, 10)},
-                            4 * a, WHITE);
+            float lifeFrac = p->life / 0.25f;
+            unsigned char alpha = (unsigned char)(255 * lifeFrac);
+            
+            // 1. Massive Primary Beam (Layered)
+            // Outer glow
+            DrawRectangle((int)(p->pos.x - 30 * lifeFrac), -100,
+                          (int)(60 * lifeFrac), (int)(p->pos.y + 100),
+                          CAlpha(SKYBLUE, (unsigned char)(alpha / 4)));
+            // Inner glow
+            DrawRectangle((int)(p->pos.x - 18 * lifeFrac), -100,
+                          (int)(36 * lifeFrac), (int)(p->pos.y + 100),
+                          CAlpha(WHITE, (unsigned char)(alpha / 2)));
+            // Core
+            DrawRectangle((int)(p->pos.x - 6 * lifeFrac), -100,
+                          (int)(12 * lifeFrac), (int)(p->pos.y + 100),
+                          CAlpha(WHITE, alpha));
+
+            // 2. Shockwave Rings (Expanding outward from impact)
+            float ringTimer = (0.25f - p->life) * 4.0f; // 0 to 1
+            for (int r = 0; r < 3; r++)
+            {
+                float rt = fmodf(ringTimer + r * 0.33f, 1.0f);
+                float radius = rt * 80.0f;
+                unsigned char ra = (unsigned char)((1.0f - rt) * 150);
+                DrawCircleLines((int)p->pos.x, (int)p->pos.y, radius, CAlpha(SKYBLUE, ra));
+                DrawCircleLines((int)p->pos.x, (int)p->pos.y, radius + 2, CAlpha(WHITE, (unsigned char)(ra/2)));
+            }
+
+            // 3. Lingering Plasma "Afterimage" (Jagged fragments along the beam)
+            for (int k = 0; k < 12; k++)
+            {
+                float py = p->pos.y - (k * 60) - fmodf(t * 200, 60);
+                if (py < -100) continue;
+                float off = sinf(t * 20 + k) * 15 * lifeFrac;
+                DrawLineEx((Vector2){p->pos.x + off, py}, (Vector2){p->pos.x - off, py + 30}, 
+                           3 * lifeFrac, CAlpha(SKYBLUE, (unsigned char)(alpha/2)));
+            }
         }
         else if (p->wtype == WEAPON_FLAK)
         {
-            if (p->state == 0)
+            if (p->state == 0) // Primary shell
             {
-                DrawCircleV(p->pos, 8, ORANGE);
+                // Rotating shell body
+                float rot = t * 20.0f;
+                // Draw shell fins
+                for(int j=0; j<3; j++) {
+                    float ang = rot + j * (PI*2/3);
+                    Vector2 tip = {p->pos.x + cosf(ang)*12, p->pos.y + sinf(ang)*12};
+                    DrawLineEx(p->pos, tip, 3.0f, DARKGRAY);
+                    DrawCircleV(tip, 2, ORANGE);
+                }
+                
+                // Glowing core & Heat trail
+                DrawCircleGradient((int)p->pos.x, (int)p->pos.y, 22, CAlpha(ORANGE, 130), BLANK);
+                DrawCircleV(p->pos, 7, ORANGE);
                 DrawCircleV(p->pos, 4, WHITE);
-                DrawCircleGradient((int)p->pos.x, (int)p->pos.y,
-                                   18, CAlpha(YELLOW, 150), BLANK);
+                
+                // Smoke trail
+                if (GetRandomValue(0, 10) > 4)
+                    SpawnP(p->pos, GRAY, 1, 15, 3.0f);
             }
-            else if (p->state == 2)
+            else if (p->state == 2) // Fragments
             {
-                DrawCircleV(p->pos, 3, YELLOW);
-                DrawCircleV(p->pos, 1, WHITE);
+                float fv = p->life / 0.4f;
+                DrawLineEx(p->pos, (Vector2){p->pos.x - p->vel.x * 0.05f, p->pos.y - p->vel.y * 0.05f}, 
+                           2.5f * fv, CAlpha(YELLOW, (unsigned char)(fv * 255)));
+                DrawCircleV(p->pos, 3 * fv, WHITE);
             }
         }
         else if (p->wtype == WEAPON_TESLA)
@@ -604,49 +677,122 @@ void DrawWeaponEffects(void)
             float d = VDist(p->pos, p->vel);
             if (d > 0.1f)
             {
-                Vector2 dir = {(p->vel.x - p->pos.x) / d,
-                               (p->vel.y - p->pos.y) / d};
-                int segs = (int)(d / 15);
+                float lifeFrac = p->life / 0.15f;
+                int segs = (int)(d / 12);
                 if (segs < 1) segs = 1;
+                
                 Vector2 last = p->pos;
+                Vector2 dir = {(p->vel.x - p->pos.x) / d, (p->vel.y - p->pos.y) / d};
+                
                 for (int s = 1; s <= segs; s++)
                 {
-                    Vector2 next = {p->pos.x + dir.x * (s * 15),
-                                    p->pos.y + dir.y * (s * 15)};
+                    Vector2 next = {p->pos.x + dir.x * (s * 12), p->pos.y + dir.y * (s * 12)};
                     if (s == segs) next = p->vel;
-                    if (s < segs)
-                    {
-                        next.x += Rf(-12, 12);
-                        next.y += Rf(-12, 12);
+                    else {
+                        float jitter = 14.0f * lifeFrac;
+                        next.x += Rf(-jitter, jitter);
+                        next.y += Rf(-jitter, jitter);
                     }
-                    DrawLineEx(last, next, 4.0f, CAlpha(SKYBLUE, 180));
-                    DrawLineEx(last, next, 2.0f, WHITE);
+                    
+                    // Main bolt
+                    DrawLineEx(last, next, 5.0f * lifeFrac, CAlpha(SKYBLUE, (unsigned char)(180 * lifeFrac)));
+                    DrawLineEx(last, next, 2.0f * lifeFrac, WHITE);
+                    
+                    // Sub-branches (randomly sprout)
+                    if (GetRandomValue(0, 100) < 20 && s < segs) {
+                        Vector2 branchDir = {dir.y, -dir.x}; // perpendicular
+                        if (GetRandomValue(0, 1) == 0) branchDir = (Vector2){-dir.y, dir.x};
+                        Vector2 branchEnd = {next.x + branchDir.x * 25 * lifeFrac, next.y + branchDir.y * 25 * lifeFrac};
+                        DrawLineEx(next, branchEnd, 2.0f * lifeFrac, CAlpha(SKYBLUE, (unsigned char)(120 * lifeFrac)));
+                    }
+                    
                     last = next;
                 }
+                
+                // Static impact pop
+                DrawCircleGradient((int)p->vel.x, (int)p->vel.y, (int)(25 * lifeFrac), CAlpha(SKYBLUE, 100), BLANK);
+                DrawCircleV(p->vel, 5 * lifeFrac, WHITE);
             }
         }
         else if (p->wtype == WEAPON_SINGULARITY)
         {
-            float rot = t * 15.0f;
-            DrawCircleGradient((int)p->pos.x, (int)p->pos.y,
-                               (int)(30 + sinf(t * 8) * 10),
-                               CAlpha(PURPLE, 220), BLANK);
-            DrawCircleV(p->pos, 11, BLACK);
-            for (int j = 0; j < 6; j++)
-            {
-                float ang = rot + j * 3.14159265f / 3.0f;
-                Vector2 tip = {p->pos.x + cosf(ang) * 22,
-                               p->pos.y + sinf(ang) * 22};
-                DrawLineEx(p->pos, tip, 3.5f, VIOLET);
-                DrawCircle((int)tip.x, (int)tip.y, 4, WHITE);
+            float rot = t * 12.0f;
+            float pulse = sinf(t * 10.0f) * 0.15f;
+            float sizeBase = 35.0f * (1.15f + pulse);
+            
+            // 1. Spacetime Distortion (Expanding/Contracting rings)
+            for (int r = 0; r < 2; r++) {
+                float ringRad = sizeBase * (1.0f + r * 0.5f + sinf(t * 5 + r) * 0.2f);
+                DrawCircleLines((int)p->pos.x, (int)p->pos.y, ringRad, CAlpha(PURPLE, 100));
             }
+            
+            // Event Horizon shadow with Void distortion
+            Color ringC = (p->state == 1) ? VIOLET : PURPLE;
+            DrawCircleGradient((int)p->pos.x, (int)p->pos.y, (int)sizeBase, CAlpha(ringC, 180), BLANK);
+            DrawCircleGradient((int)p->pos.x, (int)p->pos.y, (int)sizeBase * 0.7f, CAlpha(BLACK, 255), CAlpha(BLACK, 0));
+            DrawCircleV(p->pos, 15, BLACK);
+            
+            // Stationary intense glow
+            if (p->state == 1) {
+                float intensity = 0.5f + 0.5f * sinf(t * 15.0f);
+                DrawCircleLines((int)p->pos.x, (int)p->pos.y, 18, CAlpha(WHITE, (unsigned char)(100 * intensity)));
+            }
+
+            // Pulse effect
+            float orbPulse = sinf(t * 12.0f) * 0.1f + 1.0f;
+            DrawCircleLines((int)p->pos.x, (int)p->pos.y, (int)(16 * orbPulse), CAlpha(VIOLET, 150));
+            
+            // Accretion particles - denser
+            for(int k=0; k<12; k++) {
+                float ang = t * 6.0f + k * (PI/6);
+                float dist = sizeBase * (0.6f + 0.3f * sinf(t * 8.0f + k));
+                DrawCircleV((Vector2){p->pos.x + cosf(ang)*dist, p->pos.y + sinf(ang)*dist}, 2, VIOLET);
+            }
+            
+            // 3. Accretion Disk "Ribbons" (Swirling arcs)
+            for (int j = 0; j < 4; j++)
+            {
+                float ang = rot + j * (PI / 2.0f);
+                float arcStart = ang;
+                float arcEnd = ang + PI / 4.0f;
+                DrawRing(p->pos, 16, 22, arcStart * RAD2DEG, arcEnd * RAD2DEG, 8, VIOLET);
+                
+                // Light motes being "sucked in"
+                float moteDist = 50.0f * (1.0f - fmodf(t + j * 0.25f, 1.0f));
+                Vector2 motePos = {p->pos.x + cosf(ang) * moteDist, p->pos.y + sinf(ang) * moteDist};
+                DrawCircleV(motePos, 2, WHITE);
+            }
+            
+            // 4. Polar Glow
+            DrawRectangleGradientV((int)p->pos.x - 2, (int)p->pos.y - 60, 4, 120, BLANK, CAlpha(VIOLET, 180));
         }
         else if (p->wtype == WEAPON_WAVE)
         {
-            DrawCircleGradient((int)p->pos.x, (int)p->pos.y,
-                               22, CAlpha(GREEN, 120), BLANK);
-            DrawCircleV(p->pos, 6, LIME);
-            DrawCircleV(p->pos, 3, WHITE);
+            // 1. Dual-Chord Visual (Emerald and Lime)
+            float waveT = p->stateTime * 15.0f;
+            float waveA = 55.0f;
+            float sign = (p->state == 0) ? 1.0f : -1.0f;
+            
+            for(int layer=0; layer<2; layer++) {
+                Color wc = (layer == 0) ? LIME : GREEN;
+                float layerOff = layer * 0.5f;
+                float px = p->baseX + sinf(waveT + layerOff) * waveA * sign;
+                Vector2 currentPos = {px, p->pos.y};
+                
+                // Draw core
+                DrawCircleGradient((int)currentPos.x, (int)currentPos.y, 25, CAlpha(wc, 100), BLANK);
+                DrawCircleV(currentPos, 7, wc);
+                DrawCircleV(currentPos, 3, WHITE);
+                
+                // 2. Sonic Ripples (Trailing waves)
+                for(int r=0; r<3; r++) {
+                    float rDist = (r + 1) * 25.0f;
+                    float rY = p->pos.y + rDist;
+                    float rX = p->baseX + sinf(waveT - r * 0.4f + layerOff) * waveA * sign;
+                    unsigned char ra = (unsigned char)(150 / (r + 1));
+                    DrawCircleLines((int)rX, (int)rY, 10 - r*2, CAlpha(wc, ra));
+                }
+            }
         }
     }
 }
