@@ -850,9 +850,54 @@ void DrawGameplay(void)
             continue;
         Vector2 bp = G.bullets[i].pos;
         Color bc = G.bullets[i].isEnemy ? RED : (Color){180, 230, 255, 255};
-        DrawRectangle((int)bp.x - 2, (int)bp.y - 7, 4, 14, bc);
-        DrawRectangle((int)bp.x - 1, (int)bp.y - 5, 2, 10, WHITE);
+        
+        if (G.bullets[i].isEnemy) {
+            DrawRectangle((int)bp.x - 2, (int)bp.y - 7, 4, 14, bc);
+            DrawRectangle((int)bp.x - 1, (int)bp.y - 5, 2, 10, WHITE);
+        } else {
+            // Enhanced Player Laser: Core/Halo distinguish
+            float pulse = 0.8f + 0.2f * sinf(G.gameTime * 20.0f);
+            DrawRectangle((int)bp.x - 5, (int)bp.y - 12, 10, 24, CAlpha(SKYBLUE, (unsigned char)(60 * pulse)));
+            DrawRectangle((int)bp.x - 3, (int)bp.y - 10, 6, 20, CAlpha(WHITE, (unsigned char)(180 * pulse)));
+            DrawRectangle((int)bp.x - 1, (int)bp.y - 8, 2, 16, WHITE);
+            // Particle spark trail
+            if (GetRandomValue(0, 5) == 0) SpawnP(bp, SKYBLUE, 1, 10, 1.5f);
+        }
         DrawCircleV(bp, 5, CAlpha(bc, 60));
+    }
+    
+    // Muzzle Flashes & Weapon Charge-up Effects
+    if (G.player.alive) {
+        float f = G.player.fireCooldown / G.player.fireRate;
+        if (f > 0.5f) {
+            float flashAlpha = (f - 0.5f) * 2.0f;
+            Color fc = (G.player.type == SHIP_INTERCEPTOR) ? SKYBLUE : (G.player.type == SHIP_DESTROYER) ? ORANGE : PINK;
+            
+            // Draw flashes at ship-specific weapon mount points
+            if (G.player.type == SHIP_TITAN) {
+                for (int d = -1; d <= 1; d++) {
+                    Vector2 mp = {G.player.pos.x + d * 10, G.player.pos.y - 26};
+                    DrawCircleGradient((int)mp.x, (int)mp.y, (int)(15 * flashAlpha), CAlpha(fc, (unsigned char)(150 * flashAlpha)), BLANK);
+                    DrawCircleV(mp, 5 * flashAlpha, WHITE);
+                }
+            } else if (G.player.type == SHIP_DESTROYER) {
+                for (int d = -1; d <= 1; d += 2) {
+                    Vector2 mp = {G.player.pos.x + d * 12, G.player.pos.y - 20};
+                    DrawCircleGradient((int)mp.x, (int)mp.y, (int)(12 * flashAlpha), CAlpha(fc, (unsigned char)(150 * flashAlpha)), BLANK);
+                    DrawCircleV(mp, 4 * flashAlpha, WHITE);
+                }
+            } else {
+                Vector2 mp = {G.player.pos.x, G.player.pos.y - 28};
+                DrawCircleGradient((int)mp.x, (int)mp.y, (int)(10 * flashAlpha), CAlpha(fc, (unsigned char)(150 * flashAlpha)), BLANK);
+                DrawCircleV(mp, 3 * flashAlpha, WHITE);
+            }
+        }
+        
+        // Special Weapon Ready/Charge effect
+        if (G.selectedWeapon != WEAPON_LASER && G.energy >= 40) {
+            float readyAnim = sinf(G.gameTime * 8.0f) * 0.5f + 0.5f;
+            DrawCircleLines((int)G.player.pos.x, (int)G.player.pos.y - 15, 12 + readyAnim * 4, CAlpha(VIOLET, (unsigned char)(100 * readyAnim)));
+        }
     }
     DrawWeaponEffects();
     if (G.player.alive)
@@ -890,6 +935,15 @@ void DrawGameplay(void)
         }
     }
     EndMode2D();
+    
+    // Global Screen Effects (Post-processing feel)
+    // Railgun White-out / Flash
+    for (int i = 0; i < MAX_BULLETS; i++) {
+        if (G.weaponProjs[i].active && G.weaponProjs[i].wtype == WEAPON_RAILGUN) {
+            float f = G.weaponProjs[i].life / 0.25f;
+            DrawRectangle(0, 0, SW, SH, CAlpha(WHITE, (unsigned char)(15 * f)));
+        }
+    }
     DrawText(TextFormat("SCORE: %d", G.score), 10, 10, 26, WHITE);
     DrawText(TextFormat("HIGH: %d", G.highscore), 10, 40, 20, LIGHTGRAY);
     if (G.comboMultiplier > 1.0f)
