@@ -8,6 +8,12 @@
 
 extern GameState G;
 
+static float VDist(Vector2 a, Vector2 b)
+{
+    float dx = a.x - b.x, dy = a.y - b.y;
+    return sqrtf(dx * dx + dy * dy);
+}
+
 void InitEnemies(void)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
@@ -129,15 +135,76 @@ void UpdateEnemies(float dt)
             if (dy < 0 && dy > -evasionRadius && fabsf(dx) < evasionWidth)
             {
                 // Steer away based on horizontal position
-                if (dx > 0)
+                if (dx > 0) force.x += dodgeForce; 
+                else force.x -= dodgeForce;
+                break; 
+            }
+        }
+ 
+        // --- Special Weapon Defense logic ---
+        float specialDodgeMul = (G.difficulty == DIFF_EASY) ? 0.4f :
+                                (G.difficulty == DIFF_HARD) ? 1.6f : 1.0f;
+
+        for (int w = 0; w < MAX_BULLETS; w++)
+        {
+            if (!G.weaponProjs[w].active) continue;
+            WeaponProj *wp = &G.weaponProjs[w];
+            float dx = e->pos.x - wp->pos.x;
+            float dy = e->pos.y - wp->pos.y;
+            float dist = sqrtf(dx*dx + dy*dy);
+
+            if (wp->wtype == WEAPON_SINGULARITY)
+            {
+                // Resist the pull: move directly away from the center
+                if (dist < 600 && dist > 1.0f)
                 {
-                    force.x += dodgeForce; // Move right
+                    float forceMag = (wp->state == 1) ? 800.0f : 400.0f;
+                    force.x += (dx / dist) * forceMag * specialDodgeMul;
+                    force.y += (dy / dist) * forceMag * specialDodgeMul;
                 }
-                else
+            }
+            else if (wp->wtype == WEAPON_FLAK)
+            {
+                // Avoid the shell or fragments
+                if (dist < 200 && dist > 1.0f)
                 {
-                    force.x -= dodgeForce; // Move left
+                    if (dx > 0) force.x += dodgeForce * 1.5f * specialDodgeMul;
+                    else force.x -= dodgeForce * 1.5f * specialDodgeMul;
                 }
-                break; // React to one bullet at a time
+            }
+            else if (wp->wtype == WEAPON_WAVE)
+            {
+                // Dodge away from the waving path
+                if (dist < 150 && dist > 1.0f)
+                {
+                    if (dx > 0) force.x += dodgeForce * 1.2f * specialDodgeMul;
+                    else force.x -= dodgeForce * 1.2f * specialDodgeMul;
+                }
+            }
+        }
+
+        // Proactive Railgun/Tesla defense (when player is aiming/charging)
+        if (G.player.alive && G.energy >= 25.0f)
+        {
+            float dx = e->pos.x - G.player.pos.x;
+            if (G.selectedWeapon == WEAPON_RAILGUN)
+            {
+                // Railgun is hitscan and wide. If in vertical sights, dash away!
+                if (fabsf(dx) < 60)
+                {
+                    if (dx > 0) force.x += dodgeForce * 2.0f * specialDodgeMul;
+                    else force.x -= dodgeForce * 2.0f * specialDodgeMul;
+                }
+            }
+            else if (G.selectedWeapon == WEAPON_TESLA)
+            {
+                // Tesla chains. If too close to player or others, spread out.
+                float pDist = VDist(e->pos, G.player.pos);
+                if (pDist < 380)
+                {
+                    force.x += (dx > 0 ? 1 : -1) * dodgeForce * specialDodgeMul;
+                    force.y -= dodgeForce * specialDodgeMul; // Move back
+                }
             }
         }
 

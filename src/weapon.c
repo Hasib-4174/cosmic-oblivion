@@ -453,6 +453,7 @@ static void DestroyMeteor(int mi, Vector2 hitPos)
     G.comboMultiplier = Clampf(G.comboMultiplier + 0.25f, 1, 5);
     G.meteorsDestroyed++;
 
+
     if (m->size == METEOR_LARGE)
     {
         SpawnMeteorAt(m->pos, METEOR_MEDIUM);
@@ -501,6 +502,7 @@ static void DestroyEnemy(int ei, Vector2 hitPos)
 
     G.score += points;
     G.enemiesDestroyed++;
+
 
     int dropChance = (e->type == SHIP_TITAN) ? 40 :
                      (e->type == SHIP_DESTROYER) ? 15 : 5;

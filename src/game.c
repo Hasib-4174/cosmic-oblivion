@@ -414,12 +414,7 @@ void UpdateGame(float dt)
             }
         }
 
-        /* Energy regen: 20/sec when H is not held */
-        if (!IsKeyDown(KEY_H))
-        {
-            G.energy += 20.0f * dt;
-            if (G.energy > G.maxEnergy) G.energy = G.maxEnergy;
-        }
+
     }
     for (int i = 0; i < MAX_BULLETS; i++)
     {
@@ -493,6 +488,13 @@ void UpdateGame(float dt)
                     G.comboTimer = 2.0f;
                     G.comboMultiplier = Clampf(G.comboMultiplier + 0.25f, 1, 5);
                     G.meteorsDestroyed++;
+
+                    /* Grant energy based on size */
+                    float energyGain = (G.meteors[mi].size == METEOR_LARGE) ? 6.0f :
+                                       (G.meteors[mi].size == METEOR_MEDIUM) ? 4.0f : 2.0f;
+                    G.energy += energyGain;
+                    if (G.energy > G.maxEnergy) G.energy = G.maxEnergy;
+
                     if (G.meteors[mi].size == METEOR_LARGE)
                     {
                         SpawnMeteorAt(G.meteors[mi].pos, METEOR_MEDIUM);
@@ -562,6 +564,13 @@ void UpdateGame(float dt)
                     points = (int)(points * scoreMul);
                     G.score += points;
                     G.enemiesDestroyed++;
+
+                    /* Grant energy based on type */
+                    float energyGain = (G.enemies[ei].type == SHIP_TITAN) ? 30.0f :
+                                       (G.enemies[ei].type == SHIP_DESTROYER) ? 15.0f : 5.0f;
+                    G.energy += energyGain;
+                    if (G.energy > G.maxEnergy) G.energy = G.maxEnergy;
+
                     
                     // Drop health or shield pickup
                     int dropChance = (G.enemies[ei].type == SHIP_TITAN) ? 40 : 
