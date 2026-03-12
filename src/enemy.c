@@ -142,8 +142,8 @@ void UpdateEnemies(float dt)
         }
  
         // --- Special Weapon Defense logic ---
-        float specialDodgeMul = (G.difficulty == DIFF_EASY) ? 0.4f :
-                                (G.difficulty == DIFF_HARD) ? 1.6f : 1.0f;
+        float specialDodgeMul = (G.difficulty == DIFF_EASY) ? 0.3f :
+                                (G.difficulty == DIFF_HARD) ? 1.2f : 0.7f;
 
         for (int w = 0; w < MAX_BULLETS; w++)
         {
@@ -156,9 +156,9 @@ void UpdateEnemies(float dt)
             if (wp->wtype == WEAPON_SINGULARITY)
             {
                 // Resist the pull: move directly away from the center
-                if (dist < 600 && dist > 1.0f)
+                if (dist < 400 && dist > 1.0f)
                 {
-                    float forceMag = (wp->state == 1) ? 800.0f : 400.0f;
+                    float forceMag = (wp->state == 1) ? 500.0f : 250.0f;
                     force.x += (dx / dist) * forceMag * specialDodgeMul;
                     force.y += (dy / dist) * forceMag * specialDodgeMul;
                 }
@@ -166,7 +166,7 @@ void UpdateEnemies(float dt)
             else if (wp->wtype == WEAPON_FLAK)
             {
                 // Avoid the shell or fragments
-                if (dist < 200 && dist > 1.0f)
+                if (dist < 150 && dist > 1.0f)
                 {
                     if (dx > 0) force.x += dodgeForce * 1.5f * specialDodgeMul;
                     else force.x -= dodgeForce * 1.5f * specialDodgeMul;
@@ -175,7 +175,7 @@ void UpdateEnemies(float dt)
             else if (wp->wtype == WEAPON_WAVE)
             {
                 // Dodge away from the waving path
-                if (dist < 150 && dist > 1.0f)
+                if (dist < 120 && dist > 1.0f)
                 {
                     if (dx > 0) force.x += dodgeForce * 1.2f * specialDodgeMul;
                     else force.x -= dodgeForce * 1.2f * specialDodgeMul;
@@ -190,7 +190,7 @@ void UpdateEnemies(float dt)
             if (G.selectedWeapon == WEAPON_RAILGUN)
             {
                 // Railgun is hitscan and wide. If in vertical sights, dash away!
-                if (fabsf(dx) < 60)
+                if (fabsf(dx) < 45)
                 {
                     if (dx > 0) force.x += dodgeForce * 2.0f * specialDodgeMul;
                     else force.x -= dodgeForce * 2.0f * specialDodgeMul;
@@ -200,7 +200,7 @@ void UpdateEnemies(float dt)
             {
                 // Tesla chains. If too close to player or others, spread out.
                 float pDist = VDist(e->pos, G.player.pos);
-                if (pDist < 380)
+                if (pDist < 300)
                 {
                     force.x += (dx > 0 ? 1 : -1) * dodgeForce * specialDodgeMul;
                     force.y -= dodgeForce * specialDodgeMul; // Move back

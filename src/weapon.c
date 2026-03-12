@@ -332,7 +332,7 @@ void UpdateWeaponProjs(float dt)
                 {
                     if (!G.enemies[e].active) continue;
                     float d = VDist(p->pos, G.enemies[e].pos);
-                    if (d < 400)
+                    if (d < 250)
                     {
                         G.enemies[e].hp -= 15;
                         SpawnP(G.enemies[e].pos, VIOLET, 15, 150, 2.5f);
@@ -344,7 +344,7 @@ void UpdateWeaponProjs(float dt)
                 {
                     if (!G.meteors[m].active) continue;
                     float d = VDist(p->pos, G.meteors[m].pos);
-                    if (d < 400)
+                    if (d < 250)
                     {
                         G.meteors[m].hp -= 15;
                         SpawnP(G.meteors[m].pos, VIOLET, 15, 150, 2.5f);
@@ -727,6 +727,12 @@ void DrawWeaponEffects(void)
                 float ringRad = sizeBase * (1.0f + r * 0.5f + sinf(t * 5 + r) * 0.2f);
                 DrawCircleLines((int)p->pos.x, (int)p->pos.y, ringRad, CAlpha(PURPLE, 100));
             }
+
+            // --- Range Glow (Subtle indicator for the 250 radius) ---
+            float rangePulse = 0.5f + 0.5f * sinf(t * 3.0f);
+            unsigned char rangeAlpha = (unsigned char)(20 + 20 * rangePulse);
+            DrawCircleLines((int)p->pos.x, (int)p->pos.y, 250, CAlpha(VIOLET, rangeAlpha));
+            DrawCircleGradient((int)p->pos.x, (int)p->pos.y, 250, CAlpha(PURPLE, (unsigned char)(rangeAlpha / 2)), BLANK);
             
             // Event Horizon shadow with Void distortion
             Color ringC = (p->state == 1) ? VIOLET : PURPLE;
