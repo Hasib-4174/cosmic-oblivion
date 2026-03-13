@@ -4,7 +4,7 @@
 - **Project**: Cosmic Oblivion - Arcade Space Shooter
 - **Language**: Pure C (C99 compatible)
 - **Framework**: raylib
-- **Architecture**: Modular (14 source files, 14 header files)
+- **Architecture**: Modular (16 source files, 16 header files)
 
 ---
 
@@ -139,7 +139,7 @@ Init*()   →  Update*(dt)  →  Draw*()
 | File | Purpose |
 |------|---------|
 | `main.c` | Entry point, game loop, screen switching |
-| `game.c` | Core game logic, player, collision detection |
+| `game.c` | Core game logic, player |
 | `helpers.c` | Utilities (Rf, Clampf, CAlpha, CLerp, LoadHS, SaveHS) |
 | `stars.c` | Parallax starfield background |
 | `particles.c` | Particle effects system |
@@ -150,6 +150,9 @@ Init*()   →  Update*(dt)  →  Draw*()
 | `ship.c` | Ship rendering and stats |
 | `enemy.c` | Enemy ship AI, spawning, shooting |
 | `meteor.c` | Meteor spawning, movement, destruction |
+| `collision.c` | Collision detection system |
+| `weapon.c` | Special weapon system |
+| `campaign.c` | Campaign/story mode |
 | `ui.c` | Menu, pause, game over screens |
 
 ### Header Files (include/)
@@ -200,4 +203,4 @@ Each .c has a corresponding .h in `include/`
 - Screen shake via `G.shakeTimer` and `G.shakeMag`
 - Combo system for score multipliers
 - Difficulty scales over time via `G.difficulty`
-- Enemy ships: Scout (fast), Fighter (balanced), Bomber (slow/heavy)
+- Enemy ships: Interceptor (fast), Destroyer (balanced), Titan (heavy), Boss (campaign)

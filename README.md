@@ -24,7 +24,9 @@ entirely in C using the raylib graphics library.
 
 **The game features:** 
 - A state-driven UI system
-- Three selectable spaceships 
+- Three selectable spaceships (plus Boss levels)
+- Campaign mode with progressive levels
+- Special weapon system with power-ups
 - Enemy ships with unique behaviors
 - Procedural meteor generation 
 - Particle-based visual effects 
@@ -57,6 +59,7 @@ entirely in C using the raylib graphics library.
 -   **Scout** --- Fast, weak, rapid-fire
 -   **Fighter** --- Balanced stats
 -   **Bomber** --- Slow but heavy damage
+-   **Boss** --- Campaign boss battles
 
 **Each enemy includes:** 
 - Unique visual design 
@@ -122,6 +125,19 @@ entirely in C using the raylib graphics library.
 -   Game Over screen
 -   Smooth state transitions
 
+### Campaign Mode
+
+-   Progressive level system
+-   Boss battles
+-   Campaign save data persistence
+-   Increasing difficulty per level
+
+### Special Weapons
+
+-   Power-up drops from enemies
+-   Multiple weapon types
+-   Enhanced attack capabilities
+
 ------------------------------------------------------------------------
 
 ## Project Structure
@@ -141,6 +157,9 @@ cosmic-oblivion/
 │   ├── ship.c         # Ship rendering
 │   ├── enemy.c        # Enemy ship system
 │   ├── meteor.c       # Meteor system
+│   ├── collision.c    # Collision detection
+│   ├── weapon.c       # Special weapon system
+│   ├── campaign.c    # Campaign/story mode
 │   └── ui.c           # Screen functions
 ├── include/
 │   ├── constants.h    # Constants, enums, types
@@ -155,12 +174,17 @@ cosmic-oblivion/
 │   ├── ship.h         # Ship declarations
 │   ├── enemy.h        # Enemy declarations
 │   ├── meteor.h       # Meteor declarations
+│   ├── collision.h    # Collision declarations
+│   ├── weapon.h       # Weapon declarations
+│   ├── campaign.h     # Campaign declarations
 │   └── ui.h           # UI declarations
 ├── audio/             # Sound effects and BGM
 │   ├── bg/            # Background music
+│   ├── enemy/         # Enemy sounds
 │   ├── explosion/     # Explosion sounds
 │   ├── firing_sound/  # Player shooting sounds
 │   ├── damage/        # Damage sounds
+│   ├── menu/         # Menu UI sounds
 │   ├── health_pickup.wav
 │   ├── shield/        # Shield sounds
 │   └── ship_engine/   # Engine sounds
@@ -217,7 +241,8 @@ make clean     # Clean build artifacts
 
 ### Manual Compile
 ```bash
-gcc src/*.c -I. -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
+gcc src/*.c -I. -Wall -Wextra -Wpedantic -std=c99 \
+    -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 ./cosmic
 ```
 
@@ -257,7 +282,7 @@ gcc src/*.c -I. -lraylib -lm -lpthread -ldl -lrt -lX11 -o cosmic
 -   Built in pure C (C99 compatible)
 -   No external game engine
 -   Minimal dependencies (raylib + standard C)
--   Modular architecture (14 source files)
+-   Modular architecture (16 source files)
 -   Clean state-based architecture
 -   Audio integration for immersive gameplay
 
