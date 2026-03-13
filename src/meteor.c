@@ -43,6 +43,13 @@ void SpawnMeteor(GameState *g)
             m->vertOffsets[j] = Rf(0.7f, 1.0f);
         float t = Rf(0, 1);
         int cp = GetRandomValue(0, 2);
+        
+        if (g->isCampaignMode)
+        {
+            cp = g->campaignState.currentLevel / 10;
+            if (cp > 2) cp = 2;
+        }
+        
         Color c1, c2;
         if (cp == 0)
         {
@@ -91,7 +98,30 @@ void SpawnMeteorAt(Vector2 pos, MeteorSize sz)
         for (int j = 0; j < 12; j++)
             m->vertOffsets[j] = Rf(0.7f, 1.0f);
         float t = Rf(0, 1);
-        m->color = CLerp((Color){139, 69, 19, 255}, (Color){255, 140, 0, 255}, t);
+        int cp = GetRandomValue(0, 2);
+        if (G.isCampaignMode)
+        {
+            cp = G.campaignState.currentLevel / 10;
+            if (cp > 2) cp = 2;
+        }
+        
+        Color c1, c2;
+        if (cp == 0)
+        {
+            c1 = (Color){139, 69, 19, 255};
+            c2 = (Color){255, 140, 0, 255};
+        }
+        else if (cp == 1)
+        {
+            c1 = (Color){160, 40, 40, 255};
+            c2 = (Color){255, 100, 60, 255};
+        }
+        else
+        {
+            c1 = (Color){100, 50, 140, 255};
+            c2 = (Color){180, 100, 220, 255};
+        }
+        m->color = CLerp(c1, c2, t);
         return;
     }
 }

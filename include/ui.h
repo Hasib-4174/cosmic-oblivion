@@ -6,6 +6,10 @@
 
 void ScreenLogo(float dt);
 void ScreenMenu(float dt);
+void ScreenModeSelect(float dt);
+void ScreenLevelSelect(float dt);
+void ScreenNarrative(float dt);
+void ScreenLevelComplete(float dt);
 void ScreenShipSelect(float dt);
 void ScreenWeaponSelect(float dt);
 void ScreenPause(float dt);

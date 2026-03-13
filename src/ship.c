@@ -1,6 +1,11 @@
 #include "include/ship.h"
 #include "include/helpers.h"
+#include "include/campaign.h"
+#include "include/game.h"
 #include <math.h>
+#include <stdlib.h>
+
+extern GameState G;
 
 void DrawShipShape(Vector2 p, ShipType t, float hover, bool engineOn)
 {
@@ -471,6 +476,164 @@ void DrawEnemyShip(Vector2 pos, ShipType t, float rotation)
         for(int i=0; i<5; i++) {
             if (GetRandomValue(0,10)>5) {
                DrawRectangle((int)p.x - 4 + GetRandomValue(-10, 10), (int)p.y + 15 + GetRandomValue(-10, 10), 2, 4, WHITE);
+            }
+        }
+    }
+    else if (t == SHIP_BOSS)
+    {
+        int act = G.campaignState.currentLevel / 10;
+        
+        if (act == 0)
+        {
+            // ACT 0: FRINGE COMMANDER (Redesigned: Darker, sharper, more aggressive)
+            // ----------------------------------------
+            float bossAura = 0.5f + 0.5f * sinf(time * 4.0f);
+            DrawCircleGradient((int)p.x, (int)p.y, 140 + bossAura * 40, CAlpha(RED, 30), BLANK);
+            DrawCircleGradient((int)p.x, (int)p.y, 90 + bossAura * 20, CAlpha(PURPLE, 50), BLANK);
+
+            // Layer 1: Central Obelisk Hull (Sharp crystalline/jagged shape)
+            DrawTriangle((Vector2){p.x, p.y + 110}, (Vector2){p.x - 50, p.y - 40}, (Vector2){p.x + 50, p.y - 40}, (Color){10, 2, 5, 255});
+            DrawTriangle((Vector2){p.x, p.y - 130}, (Vector2){p.x + 50, p.y - 40}, (Vector2){p.x - 50, p.y - 40}, (Color){10, 2, 5, 255});
+            
+            // Inner glowing lines
+            DrawLineEx((Vector2){p.x, p.y - 130}, (Vector2){p.x, p.y + 110}, 2.0f, MAROON);
+            DrawLineEx((Vector2){p.x - 50, p.y - 40}, (Vector2){p.x + 50, p.y - 40}, 2.0f, MAROON);
+
+            // Layer 2: Scythe Wing Arrays (Sharper and more floating)
+            float wingFloat = sinf(time * 5.0f) * 12.0f;
+            // Left scythe
+            DrawTriangle((Vector2){p.x - 40, p.y + 20}, (Vector2){p.x - 150, p.y - 50 - wingFloat}, (Vector2){p.x - 60, p.y - 80}, (Color){20, 0, 10, 255});
+            DrawLineEx((Vector2){p.x - 150, p.y - 50 - wingFloat}, (Vector2){p.x - 40, p.y + 20}, 5.0f, CAlpha(VIOLET, 180));
+            // Right scythe
+            DrawTriangle((Vector2){p.x + 40, p.y + 20}, (Vector2){p.x + 60, p.y - 80}, (Vector2){p.x + 150, p.y - 50 - wingFloat}, (Color){20, 0, 10, 255});
+            DrawLineEx((Vector2){p.x + 150, p.y - 50 - wingFloat}, (Vector2){p.x + 40, p.y + 20}, 5.0f, CAlpha(VIOLET, 180));
+
+            // Layer 3: Malignant Weapon Pods
+            DrawCircleV((Vector2){p.x - 80, p.y + 30}, 18, (Color){30, 2, 10, 255});
+            DrawCircleV((Vector2){p.x - 80, p.y + 30}, 6, DARKPURPLE);
+            DrawCircleV((Vector2){p.x + 80, p.y + 30}, 18, (Color){30, 2, 10, 255});
+            DrawCircleV((Vector2){p.x + 80, p.y + 30}, 6, DARKPURPLE);
+
+            // Layer 4: Chaotic Energy Core
+            float corePulse = sinf(time * 20.0f);
+            DrawCircleV((Vector2){p.x, p.y - 10}, 28 + corePulse * 6, (Color){40, 0, 20, 255});
+            DrawCircleV((Vector2){p.x, p.y - 10}, 14 + corePulse * 4, (Color){180, 0, 50, 255});
+            DrawCircleV((Vector2){p.x, p.y - 10}, 7, WHITE);
+            
+            // Arcing electricity
+            for (int i = 0; i < 4; i++) {
+                float a = (time * 10) + i * 1.57f;
+                DrawLineEx((Vector2){p.x, p.y - 10}, (Vector2){p.x + cosf(a)*50, p.y - 10 + sinf(a)*50}, 2.0f, CAlpha(MAGENTA, 150));
+            }
+            
+            // Layer 5: Void Engine Trails
+            unsigned char ea = (unsigned char)(200 + GetRandomValue(0, 55));
+            DrawTriangle((Vector2){p.x - 15, p.y - 100}, (Vector2){p.x, p.y - 200}, (Vector2){p.x + 15, p.y - 100}, CAlpha(PURPLE, ea));
+            DrawTriangle((Vector2){p.x - 8, p.y - 110}, (Vector2){p.x, p.y - 160}, (Vector2){p.x + 8, p.y - 110}, CAlpha(WHITE, ea));
+        }
+        else if (act == 1)
+        {
+            // ACT 1: CORE WORLDS COMMANDER (Goliath Fortress / Armed Saucer)
+            // ----------------------------------------
+            float shieldPulse = 0.5f + 0.5f * sinf(time * 5.0f);
+            DrawCircleGradient((int)p.x, (int)p.y, 180, CAlpha(SKYBLUE, (unsigned char)(10 + 20*shieldPulse)), BLANK);
+            DrawCircleLines((int)p.x, (int)p.y, 160 + shieldPulse*10, CAlpha(SKYBLUE, 100));
+
+            // Layer 1: Massive Saucer Hull
+            DrawEllipse((int)p.x, (int)p.y, 130, 70, (Color){30, 30, 35, 255});     // Base
+            DrawEllipse((int)p.x, (int)p.y - 15, 110, 55, (Color){50, 50, 60, 255}); // Mid hull
+            
+            // Rotating outer ring details
+            for (int i = 0; i < 8; i++) {
+                float a = (time * 1.5f) + i * 0.785f;
+                Vector2 rp = {p.x + cosf(a)*110, p.y + sinf(a)*50};
+                DrawCircleV(rp, 8, (Color){20, 20, 25, 255});
+                DrawCircleV(rp, 4, CAlpha(SKYBLUE, 200));
+            }
+
+            // Layer 2: Quad Railgun Batteries
+            // Left batteries
+            DrawRectangleV((Vector2){p.x - 100, p.y - 10}, (Vector2){25, 60}, (Color){20, 20, 25, 255});
+            DrawRectangleV((Vector2){p.x - 95, p.y + 10}, (Vector2){15, 50}, (Color){40, 40, 45, 255});
+            // Right batteries
+            DrawRectangleV((Vector2){p.x + 75, p.y - 10}, (Vector2){25, 60}, (Color){20, 20, 25, 255});
+            DrawRectangleV((Vector2){p.x + 80, p.y + 10}, (Vector2){15, 50}, (Color){40, 40, 45, 255});
+
+            // Layer 3: Central Command Hub
+            DrawEllipse((int)p.x, (int)p.y - 35, 60, 25, (Color){20, 20, 25, 255});
+            DrawEllipse((int)p.x, (int)p.y - 45, 30, 15, (Color){10, 40, 60, 255}); // Dome
+            
+            // Strategic sensor lights
+            for (int i = 0; i < 5; i++) {
+                float scan = sinf(time * 4.0f + i) > 0.5f ? 1.0f : 0.2f;
+                DrawCircle((int)(p.x - 20 + i*10), (int)(p.y - 42), 2, CAlpha(SKYBLUE, (unsigned char)(255 * scan)));
+            }
+
+            // Layer 4: High-Output Engine Rings
+            unsigned char ea = (unsigned char)(180 + GetRandomValue(0, 75));
+            DrawEllipseLines((int)p.x, (int)p.y + 20, 90, 30, CAlpha(SKYBLUE, ea));
+            DrawEllipseLines((int)p.x, (int)p.y + 25, 70, 20, CAlpha(BLUE, ea));
+            
+            // Main thruster pulses
+            DrawCircleGradient((int)p.x, (int)p.y + 35, 40, CAlpha(SKYBLUE, 150), BLANK);
+            DrawCircleV((Vector2){p.x, p.y + 35}, 12, WHITE);
+        }
+        else
+        {
+            // ACT 2: OBLIVION COMMANDER (The Ultimate Darkness)
+            // ----------------------------------------
+            float voidPulse = time * 3.0f;
+            for(int i=0; i<4; i++) {
+                float angle = voidPulse + i * (PI/2.0f);
+                float dist = 25 + sinf(time * 2.0f) * 15;
+                Vector2 off = {cosf(angle)*dist, sinf(angle)*dist};
+                DrawCircleGradient((int)(p.x+off.x), (int)(p.y+off.y), 170, CAlpha(DARKPURPLE, 35), BLANK);
+                DrawCircleGradient((int)(p.x-off.x), (int)(p.y-off.y), 130, CAlpha(BLACK, 55), BLANK);
+            }
+
+            // Central Core: The Star-Eater Heart
+            float heartThrob = sinf(time * 10.0f) * 4.0f;
+            DrawEllipse((int)p.x, (int)p.y, 60 + heartThrob, 90 + heartThrob, (Color){10, 0, 15, 255});
+            DrawEllipse((int)p.x, (int)p.y, 40 + heartThrob, 70 + heartThrob, (Color){45, 0, 65, 255});
+            
+            // Pulsing Nightmare Eye
+            DrawCircleGradient((int)p.x, (int)p.y + 12, 30 + heartThrob, CAlpha(VIOLET, 160), BLANK);
+            DrawCircleV((Vector2){p.x, p.y + 12}, 14, (Color){200, 0, 255, 255});
+            DrawCircleV((Vector2){p.x, p.y + 12}, 6, WHITE);
+
+            // Six Malignant Appendages (Scythe-Arms)
+            float armBreathe = sinf(time * 2.5f) * 18.0f;
+            for (int i = 0; i < 6; i++) {
+                float a = (i * PI/3.0f) + sinf(time * 1.5f + i) * 0.15f;
+                float len = 150 + armBreathe;
+                Vector2 start = {p.x + cosf(a)*35, p.y + sinf(a)*45};
+                Vector2 mid = {p.x + cosf(a)*len*0.65f, p.y + sinf(a)*len*0.65f + sinf(time*6+i)*25};
+                Vector2 end = {p.x + cosf(a)*len, p.y + sinf(a)*len};
+                
+                DrawLineEx(start, mid, 7.0f, (Color){15, 0, 25, 255});
+                DrawLineEx(mid, end, 5.0f, (Color){35, 0, 55, 255});
+                DrawTriangle(mid, end, (Vector2){end.x + 18, end.y + 18}, (Color){12, 0, 12, 255});
+                DrawLineEx(mid, end, 2.5f, DARKPURPLE);
+                DrawCircleV(end, 5, CAlpha(WHITE, (unsigned char)(150 + 105*sinf(time*12+i))));
+            }
+
+            // Orbital Singularity Spheres
+            for(int i=0; i<4; i++) {
+                float orbAng = time * -3.0f + i * PI / 2.0f;
+                Vector2 orb = {p.x + cosf(orbAng)*120, p.y + sinf(orbAng)*85};
+                DrawCircleV(orb, 18, (Color){25, 0, 45, 255});
+                DrawCircleV(orb, 8, (Color){180, 0, 255, 255});
+                DrawCircleV(orb, 4, WHITE);
+                DrawLineEx(orb, p, 1.5f, CAlpha(PURPLE, 120)); // Gravity tether
+            }
+
+            // Reality Distortions (Jagged arcs)
+            for(int j=0; j<10; j++) {
+                if (GetRandomValue(0, 10) > 6) {
+                    float ra = Rf(0, PI*2);
+                    float d = Rf(50, 200);
+                    DrawLineEx((Vector2){p.x, p.y}, (Vector2){p.x + cosf(ra)*d, p.y + sinf(ra)*d}, 1.0f, CAlpha(MAGENTA, 140));
+                }
             }
         }
     }

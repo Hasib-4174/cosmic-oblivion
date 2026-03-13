@@ -44,6 +44,12 @@ ShipHitbox GetShipHitbox(Vector2 shipPos, ShipType type, bool isPlayer)
             h.rects[1] = (Rectangle){shipPos.x - 75, shipPos.y - 45, 150, 70}; 
             h.count = 2;
         }
+        else if (type == SHIP_BOSS)
+        {
+            h.rects[0] = (Rectangle){shipPos.x - 60, shipPos.y - 120, 120, 220}; 
+            h.rects[1] = (Rectangle){shipPos.x - 140, shipPos.y - 60, 280, 100}; 
+            h.count = 2;
+        }
     }
     return h;
 }

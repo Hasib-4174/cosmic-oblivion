@@ -12,6 +12,7 @@
 #include "include/enemy.h"
 #include "include/collision.h"
 #include "include/weapon.h"
+#include "include/campaign.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -173,8 +174,16 @@ void InitGame(void)
     InitShieldPickups();
     InitFloatingTexts();
     InitEnemies();
-    G.meteorTimer = 0;
+    
+
+    if (G.isCampaignMode)
+    {
+        G.campaignState.levelTimer = 0;
+        G.campaignState.bossDefeated = false;
+    }
+
     /* Set initial rates based on difficulty */
+    G.meteorTimer = 0;
     if (G.difficulty == DIFF_EASY)
     {
         G.meteorRate = 1.6f;
@@ -243,6 +252,37 @@ void UpdateGame(float dt)
         rateFloor = 0.3f;
         initRate = 1.2f;
     }
+    
+    if (G.isCampaignMode)
+    {
+        LevelData ldata = GetLevelData(G.campaignState.currentLevel);
+        
+        /* Stop spawning if we reached targets for extermination/asteroid field */
+        bool stopMeteors = (ldata.targetMeteors > 0 && G.meteorsDestroyed >= ldata.targetMeteors);
+        bool stopEnemies = (ldata.targetEnemies > 0 && G.enemiesDestroyed >= ldata.targetEnemies);
+        
+        if (ldata.isBossLevel)
+        {
+            bool bossSpawned = false;
+            for (int e = 0; e < MAX_ENEMIES; e++)
+            {
+                if (G.enemies[e].active && G.enemies[e].type == SHIP_BOSS)
+                {
+                    bossSpawned = true;
+                    break;
+                }
+            }
+            if (!bossSpawned) stopEnemies = false; // Keep spawning so the boss can spawn
+        }
+
+        initRate = stopMeteors ? 999.0f : ldata.meteorSpawnRate;
+        rateFloor = initRate;
+        rampSpeed = 0;
+        
+        /* We also need to set enemy rate here too since we're organizing rates */
+        G.enemyRate = stopEnemies ? 999.0f : ldata.enemySpawnRate;
+    }
+    
     G.meteorRate = Clampf(initRate - G.gameTime * rampSpeed, rateFloor, initRate);
     G.meteorSpeedMul = 1.0f + G.gameTime * 0.005f;
     if (G.shakeTimer > 0)
@@ -354,7 +394,7 @@ void UpdateGame(float dt)
                     {
                         if (!G.bullets[i].active)
                         {
-                            G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, 600, true, false};
+                            G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, {0, -600}, true, false};
                             PlayFiringSound();
                             break;
                         }
@@ -369,7 +409,7 @@ void UpdateGame(float dt)
                     {
                         if (!G.bullets[i].active)
                         {
-                            G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, 550, true, false};
+                            G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, {0, -550}, true, false};
                             PlayFiringSound();
                             break;
                         }
@@ -382,7 +422,7 @@ void UpdateGame(float dt)
                 {
                     if (!G.bullets[i].active)
                     {
-                        G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, 650, true, false};
+                        G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, {0, -650}, true, false};
                         PlayFiringSound();
                         break;
                     }
@@ -420,14 +460,10 @@ void UpdateGame(float dt)
     {
         if (!G.bullets[i].active)
             continue;
-        
-        float speed = G.bullets[i].speed;
-        if (G.bullets[i].isEnemy)
-            G.bullets[i].pos.y += speed * dt;
-        else
-            G.bullets[i].pos.y -= speed * dt;
+        G.bullets[i].pos.x += G.bullets[i].vel.x * dt;
+        G.bullets[i].pos.y += G.bullets[i].vel.y * dt;
 
-        if (G.bullets[i].pos.y < -20 || G.bullets[i].pos.y > SH + 20)
+        if (G.bullets[i].pos.y < -20 || G.bullets[i].pos.y > SH + 20 || G.bullets[i].pos.x < -20 || G.bullets[i].pos.x > SW + 20)
             G.bullets[i].active = false;
     }
     G.meteorTimer += dt;
@@ -442,7 +478,8 @@ void UpdateGame(float dt)
     UpdateEnemies(dt);
 
     G.enemyTimer += dt;
-    float currentEnemyRate = Clampf(G.enemyRate - G.gameTime * 0.015f, 1.5f, G.enemyRate);
+    /* In campaign mode, enemyRate is already set above to avoid overriding it here. */
+    float currentEnemyRate = G.isCampaignMode ? G.enemyRate : Clampf(G.enemyRate - G.gameTime * 0.015f, 1.5f, G.enemyRate);
     if (G.enemyTimer >= currentEnemyRate)
     {
         G.enemyTimer -= currentEnemyRate;
@@ -557,6 +594,7 @@ void UpdateGame(float dt)
                     int points = 150;
                     if (G.enemies[ei].type == SHIP_DESTROYER) points = 500;
                     else if (G.enemies[ei].type == SHIP_TITAN) points = 1500;
+                    else if (G.enemies[ei].type == SHIP_BOSS) points = 10000;
                     
                     /* Difficulty score multiplier */
                     float scoreMul = (G.difficulty == DIFF_EASY) ? 0.7f :
@@ -564,9 +602,15 @@ void UpdateGame(float dt)
                     points = (int)(points * scoreMul);
                     G.score += points;
                     G.enemiesDestroyed++;
+                    
+                    if (G.isCampaignMode && G.enemies[ei].type == SHIP_BOSS)
+                    {
+                        G.campaignState.bossDefeated = true;
+                    }
 
                     /* Grant energy based on type */
-                    float energyGain = (G.enemies[ei].type == SHIP_TITAN) ? 30.0f :
+                    float energyGain = (G.enemies[ei].type == SHIP_BOSS) ? 100.0f :
+                                       (G.enemies[ei].type == SHIP_TITAN) ? 30.0f :
                                        (G.enemies[ei].type == SHIP_DESTROYER) ? 15.0f : 5.0f;
                     G.energy += energyGain;
                     if (G.energy > G.maxEnergy) G.energy = G.maxEnergy;
@@ -779,16 +823,65 @@ void UpdateGame(float dt)
     }
     if (pl->alive)
     {
-        G.scoreTimer += dt;
+    G.scoreTimer += dt;
         while (G.scoreTimer >= 1)
         {
             G.scoreTimer -= 1;
             G.score++;
         }
     }
+    
+    if (G.isCampaignMode)
+    {
+        UpdateCampaignLogic(&G, dt);
+    }
+    
     UpdateWeaponProjs(dt);
     CheckWeaponCollisions();
     UpdateParticles(dt);
+
+    if (G.isCampaignMode)
+    {
+        if (!G.campaignState.isTransitioning && CheckLevelComplete(&G))
+        {
+            G.campaignState.isTransitioning = true;
+            G.campaignState.levelCompleteTimer = 2.5f;
+            /* Activate dramatic slow-mo and make player invincible */
+            G.slowMoTimer = 2.5f;
+            G.playerShieldActive = true;
+            G.playerShieldDuration = 3.0f;
+            G.player.hp = G.player.maxHp; // free full heal on completion
+        }
+
+        if (G.campaignState.isTransitioning)
+        {
+            G.campaignState.levelCompleteTimer -= GetFrameTime(); /* Unscaled time */
+            if (G.campaignState.levelCompleteTimer <= 0)
+            {
+                G.campaignState.isTransitioning = false;
+                G.screen = SCREEN_LEVEL_COMPLETE;
+                G.lcSel = 0;
+                G.prevLcSel = -1;
+                G.lcBtns[0] = MkBtn(SW/2 - 140, 360, 280, 50, "NEXT LEVEL");
+                G.lcBtns[1] = MkBtn(SW/2 - 140, 440, 280, 50, "MENU");
+                
+                /* Stop gameplay audio */
+                StopMusicStream(G.bgmGameplay);
+                for (int i = 0; i < 3; i++)
+                {
+                    if (IsSoundPlaying(G.engineSounds[i]))
+                        StopSound(G.engineSounds[i]);
+                }
+                G.enginePlaying = false;
+                
+                if (G.audioEnabled)
+                {
+                    PlayMusicStream(G.bgmMenu);
+                    SetMusicVolume(G.bgmMenu, G.bgmVolume);
+                }
+            }
+        }
+    }
 }
 
 void DrawHPBar(Player p)
@@ -828,6 +921,83 @@ void DrawEnergyBar(void)
         if (blink > 0)
             DrawText("LOW", x + bw + 40, y - 1, 12, RED);
     }
+}
+
+static void DrawCampaignGoalHUD(void)
+{
+    LevelData ld = GetLevelData(G.campaignState.currentLevel);
+    int hw = SW / 2;
+    int y = SH - 30; // same height as HP bar
+
+    const char* goalTitle = "";
+    char progressStr[32] = {0};
+    float progressFrac = 0.0f;
+    Color hc = WHITE;
+
+    if (ld.isBossLevel)
+    {
+        goalTitle = "DEFEAT COMMANDER";
+        if (G.enemiesDestroyed >= ld.targetEnemies)
+        {
+            snprintf(progressStr, sizeof(progressStr), "BOSS ENGAGED");
+            progressFrac = 1.0f;
+            hc = RED;
+        }
+        else
+        {
+            snprintf(progressStr, sizeof(progressStr), "%d / %d WAVES", G.enemiesDestroyed, ld.targetEnemies);
+            progressFrac = (float)G.enemiesDestroyed / ld.targetEnemies;
+            hc = GOLD;
+        }
+    }
+    else if (ld.duration > 0)
+    {
+        goalTitle = "SURVIVE";
+        int tLeft = (int)(ld.duration - G.campaignState.levelTimer);
+        if (tLeft < 0) tLeft = 0;
+        snprintf(progressStr, sizeof(progressStr), "%ds LEFT", tLeft);
+        progressFrac = G.campaignState.levelTimer / ld.duration;
+        hc = SKYBLUE;
+    }
+    else if (ld.targetEnemies > 0)
+    {
+        goalTitle = "EXTERMINATE";
+        snprintf(progressStr, sizeof(progressStr), "%d / %d KILLS", G.enemiesDestroyed, ld.targetEnemies);
+        progressFrac = (float)G.enemiesDestroyed / ld.targetEnemies;
+        hc = ORANGE;
+    }
+    else if (ld.targetMeteors > 0)
+    {
+        goalTitle = "CLEAR ASTEROIDS";
+        snprintf(progressStr, sizeof(progressStr), "%d / %d ASTEROIDS", G.meteorsDestroyed, ld.targetMeteors);
+        progressFrac = (float)G.meteorsDestroyed / ld.targetMeteors;
+        hc = GRAY;
+    }
+
+    if (progressFrac > 1.0f) progressFrac = 1.0f;
+
+    /* Draw HUD element at bottom center */
+    int panelW = 260;
+    int panelH = 26;
+    int px = hw - panelW / 2;
+    int py = y - 4; // Shift up slightly from very bottom
+
+    DrawRectangle(px, py, panelW, panelH, (Color){20, 20, 30, 220});
+    DrawRectangleLines(px, py, panelW, panelH, CAlpha(hc, 150));
+
+    // Progress bar bg & fill
+    int barX = px + 4;
+    int barY = py + 16;
+    int barW = panelW - 8;
+    int barH = 6;
+    DrawRectangle(barX, barY, barW, barH, (Color){10, 10, 15, 255});
+    DrawRectangle(barX, barY, (int)(barW * progressFrac), barH, CAlpha(hc, 200));
+
+    // Texts
+    DrawText(goalTitle, px + 5, py + 3, 10, WHITE);
+    
+    int tW = MeasureText(progressStr, 10);
+    DrawText(progressStr, px + panelW - tW - 5, py + 3, 10, hc);
 }
 
 void DrawGameplay(void)
@@ -968,6 +1138,32 @@ void DrawGameplay(void)
     }
     DrawHPBar(G.player);
     DrawEnergyBar();
+
+    if (G.isCampaignMode)
+    {
+        DrawCampaignGoalHUD();
+
+        /* Level Cleared Transition Overlay */
+        if (G.campaignState.isTransitioning)
+        {
+            float f = 2.5f - G.campaignState.levelCompleteTimer; // time elapsed (0 to 2.5)
+            float alpha = f * 1.5f; // sweeps up to 1 over first ~0.66s
+            if (alpha > 1.0f) alpha = 1.0f;
+            
+            // Background darkened
+            DrawRectangle(0, 0, SW, SH, CAlpha((Color){10, 15, 30, 255}, (unsigned char)(140 * alpha)));
+
+            // Text slides up slightly and glow
+            const char* clrText = "LEVEL CLEARED";
+            int cw = MeasureText(clrText, 64);
+            float yPos = SH/2 - 40 - (float)sinf(alpha * PI/2) * 20;
+
+            DrawText(clrText, SW/2 - cw/2 + 2, (int)yPos + 2, 64, CAlpha(BLACK, (unsigned char)(200 * alpha)));
+            DrawText(clrText, SW/2 - cw/2, (int)yPos, 64, CAlpha(GOLD, (unsigned char)(255 * alpha)));
+            DrawText("Stand by for coordinates...", SW/2 - MeasureText("Stand by for coordinates...", 20)/2, (int)yPos + 80, 20, CAlpha(SKYBLUE, (unsigned char)(200 * alpha)));
+        }
+    }
+
     EndDrawing();
 }
 

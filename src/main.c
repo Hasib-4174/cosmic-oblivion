@@ -9,6 +9,7 @@
 #include "include/meteor.h"
 #include "include/game.h"
 #include "include/ui.h"
+#include "include/campaign.h"
 #include <string.h>
 
 GameState G;
@@ -65,6 +66,8 @@ int main(void)
     G.screen = SCREEN_LOGO;
     G.highscore = LoadHS();
     InitStars();
+    InitCampaign();
+    LoadCampaignProgress(&G);
 
     while (!WindowShouldClose())
     {
@@ -112,6 +115,18 @@ int main(void)
             break;
         case SCREEN_MAIN_MENU:
             ScreenMenu(dt);
+            break;
+        case SCREEN_MODE_SELECT:
+            ScreenModeSelect(dt);
+            break;
+        case SCREEN_LEVEL_SELECT:
+            ScreenLevelSelect(dt);
+            break;
+        case SCREEN_NARRATIVE:
+            ScreenNarrative(dt);
+            break;
+        case SCREEN_LEVEL_COMPLETE:
+            ScreenLevelComplete(dt);
             break;
         case SCREEN_SHIP_SELECT:
             ScreenShipSelect(dt);
@@ -170,7 +185,7 @@ int main(void)
     /* Enemy sounds */
     for (int i = 0; i < 8; i++)
     {
-        if (G.sfxEnemyShoot[i].frameCount > 0)
+        if (G.sfxEnemyShoot[i].stream.buffer != NULL)
             UnloadSound(G.sfxEnemyShoot[i]);
     }
     UnloadSound(G.sfxEnemyDestroy);
@@ -182,42 +197,48 @@ int main(void)
     /* Firing sounds */
     for (int i = 0; i < 8; i++)
     {
-        if (G.firingSounds[i].frameCount > 0)
+        if (G.firingSounds[i].stream.buffer != NULL)
             UnloadSound(G.firingSounds[i]);
     }
 
     /* Explosion sounds */
     for (int i = 0; i < 8; i++)
     {
-        if (G.explosionSounds[i].frameCount > 0)
+        if (G.explosionSounds[i].stream.buffer != NULL)
             UnloadSound(G.explosionSounds[i]);
     }
     for (int i = 0; i < G.explosionVariantCount; i++)
-        UnloadSound(G.explosionVariants[i]);
+    {
+        if (G.explosionVariants[i].stream.buffer != NULL)
+            UnloadSound(G.explosionVariants[i]);
+    }
 
     /* Health pickup sounds */
     for (int i = 0; i < 8; i++)
     {
-        if (G.healthPickupSounds[i].frameCount > 0)
+        if (G.healthPickupSounds[i].stream.buffer != NULL)
             UnloadSound(G.healthPickupSounds[i]);
     }
 
     /* Shield pickup sounds */
     for (int i = 0; i < 8; i++)
     {
-        if (G.shieldPickupSounds[i].frameCount > 0)
+        if (G.shieldPickupSounds[i].stream.buffer != NULL)
             UnloadSound(G.shieldPickupSounds[i]);
     }
 
     /* Damage sound */
-    if (G.damageSound.frameCount > 0)
+    if (G.damageSound.stream.buffer != NULL)
         UnloadSound(G.damageSound);
 
     /* Engine sounds */
     if (G.engineSoundsLoaded)
     {
         for (int i = 0; i < 3; i++)
-            UnloadSound(G.engineSounds[i]);
+        {
+            if (G.engineSounds[i].stream.buffer != NULL)
+                UnloadSound(G.engineSounds[i]);
+        }
     }
 
     CloseAudioDevice();
