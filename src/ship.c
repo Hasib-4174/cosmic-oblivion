@@ -474,4 +474,49 @@ void DrawEnemyShip(Vector2 pos, ShipType t, float rotation)
             }
         }
     }
+    else if (t == SHIP_BOSS)
+    {
+        // HYPER-DETAILED ENEMY BOSS (The Sector Commander)
+        // ----------------------------------------
+        // Layer 0: Massive Ominous Core Aura
+        float bossAura = 0.5f + 0.5f * sinf(time * 2.0f);
+        DrawCircleGradient((int)p.x, (int)p.y, 120 + bossAura * 40, CAlpha(ORANGE, 40), BLANK);
+        DrawCircleGradient((int)p.x, (int)p.y, 80 + bossAura * 20, CAlpha(RED, 60), BLANK);
+
+        // Layer 1: Central Obelisk Hull (Diamond/Hexagon shape)
+        DrawTriangle((Vector2){p.x, p.y + 100}, (Vector2){p.x - 60, p.y}, (Vector2){p.x + 60, p.y}, (Color){15, 5, 5, 255});
+        DrawTriangle((Vector2){p.x, p.y - 120}, (Vector2){p.x + 60, p.y}, (Vector2){p.x - 60, p.y}, (Color){15, 5, 5, 255});
+        DrawTriangle((Vector2){p.x, p.y + 80}, (Vector2){p.x - 40, p.y}, (Vector2){p.x + 40, p.y}, (Color){40, 10, 10, 255}); // Inner lighter
+        DrawTriangle((Vector2){p.x, p.y - 100}, (Vector2){p.x + 40, p.y}, (Vector2){p.x - 40, p.y}, (Color){40, 10, 10, 255});
+
+        // Layer 2: Floating Wing Arrays
+        float wingFloat = sinf(time * 3.0f) * 15.0f;
+        // Left Wing
+        DrawTriangle((Vector2){p.x - 70, p.y + 40}, (Vector2){p.x - 140, p.y - 20 - wingFloat}, (Vector2){p.x - 30, p.y - 60}, (Color){20, 0, 5, 255});
+        DrawLineEx((Vector2){p.x - 140, p.y - 20 - wingFloat}, (Vector2){p.x - 70, p.y + 40}, 4.0f, CAlpha(ORANGE, 150));
+        // Right Wing
+        DrawTriangle((Vector2){p.x + 70, p.y + 40}, (Vector2){p.x + 30, p.y - 60}, (Vector2){p.x + 140, p.y - 20 - wingFloat}, (Color){20, 0, 5, 255});
+        DrawLineEx((Vector2){p.x + 140, p.y - 20 - wingFloat}, (Vector2){p.x + 70, p.y + 40}, 4.0f, CAlpha(ORANGE, 150));
+
+        // Layer 3: Weapon Pods
+        DrawCircleV((Vector2){p.x - 70, p.y + 40}, 15, (Color){30, 0, 0, 255});
+        DrawCircleV((Vector2){p.x - 70, p.y + 40}, 8, RED);
+        DrawCircleV((Vector2){p.x + 70, p.y + 40}, 15, (Color){30, 0, 0, 255});
+        DrawCircleV((Vector2){p.x + 70, p.y + 40}, 8, RED);
+
+        // Layer 4: Exposed Energy Core (Pulsing wildly)
+        float corePulse = sinf(time * 15.0f);
+        DrawCircleV((Vector2){p.x, p.y}, 25 + corePulse * 5, (Color){60, 0, 0, 255});
+        DrawCircleV((Vector2){p.x, p.y}, 15 + corePulse * 3, MAROON);
+        DrawCircleV((Vector2){p.x, p.y}, 8, WHITE);
+        if (corePulse > 0.5f) {
+            DrawLineEx((Vector2){p.x, p.y}, (Vector2){p.x + Rf(-30, 30), p.y + Rf(-30, 30)}, 2.0f, YELLOW);
+            DrawLineEx((Vector2){p.x, p.y}, (Vector2){p.x + Rf(-30, 30), p.y + Rf(-30, 30)}, 2.0f, ORANGE);
+        }
+        
+        // Layer 5: Dark Matter Exhaust trails
+        unsigned char ea = (unsigned char)(150 + GetRandomValue(0, 100));
+        DrawTriangle((Vector2){p.x - 20, p.y - 80}, (Vector2){p.x, p.y - 180}, (Vector2){p.x + 20, p.y - 80}, CAlpha(RED, ea));
+        DrawTriangle((Vector2){p.x - 10, p.y - 90}, (Vector2){p.x, p.y - 150}, (Vector2){p.x + 10, p.y - 90}, CAlpha(YELLOW, ea));
+    }
 }

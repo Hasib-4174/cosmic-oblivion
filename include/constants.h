@@ -22,6 +22,10 @@ typedef enum
 {
     SCREEN_LOGO,
     SCREEN_MAIN_MENU,
+    SCREEN_MODE_SELECT,
+    SCREEN_LEVEL_SELECT,
+    SCREEN_NARRATIVE,
+    SCREEN_LEVEL_COMPLETE,
     SCREEN_SHIP_SELECT,
     SCREEN_WEAPON_SELECT,
     SCREEN_GAMEPLAY,
@@ -35,7 +39,8 @@ typedef enum
 {
     SHIP_INTERCEPTOR,
     SHIP_DESTROYER,
-    SHIP_TITAN
+    SHIP_TITAN,
+    SHIP_BOSS
 } ShipType;
 typedef enum
 {
@@ -64,6 +69,18 @@ typedef enum
     FIRE_MODE_HOLD,
     FIRE_MODE_TOGGLE
 } FireMode;
+
+typedef struct GameState GameState;
+
+typedef struct
+{
+    int unlockedLevels[3];
+    int currentLevel;
+    float levelTimer;
+    bool bossDefeated;
+    bool isTransitioning;
+    float levelCompleteTimer;
+} CampaignState;
 
 typedef struct
 {
@@ -162,7 +179,7 @@ typedef struct
     float hoverAnim;
 } Button;
 
-typedef struct
+struct GameState
 {
     GameScreen screen, prevScreen;
     Player player;
@@ -262,6 +279,17 @@ typedef struct
     /* Fire mode */
     FireMode fireMode;
     bool isFiring;
-} GameState;
+
+    /* Campaign */
+    bool isCampaignMode;
+    CampaignState campaignState;
+    Button modeBtns[3];
+    int modeSel, prevModeSel;
+    Button levelBtns[15];
+    int actSel, levelSel, prevLevelSel;
+    Button lcBtns[2];
+    int lcSel, prevLcSel;
+    Button narBtns[1];
+};
 
 #endif

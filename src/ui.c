@@ -7,6 +7,7 @@
 #include "include/ship.h"
 #include "include/meteor.h"
 #include "include/game.h"
+#include "include/campaign.h"
 #include <math.h>
 
 extern GameState G;
@@ -214,9 +215,12 @@ void ScreenMenu(float dt)
         PlayBtnSelect();
         if (G.menuSel == 0)
         {
-            G.screen = SCREEN_SHIP_SELECT;
-            G.shipSel = G.selectedShip;
-            G.prevShipSel = -1;
+            G.screen = SCREEN_MODE_SELECT;
+            G.modeBtns[0] = MkBtn(SW / 2 - 140, 300, 280, 50, "CAMPAIGN");
+            G.modeBtns[1] = MkBtn(SW / 2 - 140, 380, 280, 50, "ENDLESS");
+            G.modeBtns[2] = MkBtn(SW / 2 - 140, 460, 280, 50, "BACK");
+            G.modeSel = 0;
+            G.prevModeSel = -1;
         }
         else if (G.menuSel == 1)
         {
@@ -260,9 +264,12 @@ void ScreenShipSelect(float dt)
         Rectangle card = {cx - 110, 160, 220, 380};
         if (CheckCollisionPointRec(mouse, card))
         {
+            int reqLevel = (i == 1) ? 3 : (i == 2) ? 10 : 0;
+            bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
+            
             if (G.shipSel != i)
                 G.shipSel = i;
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !locked)
             {
                 PlayBtnSelect();
                 G.selectedShip = G.shipSel;
@@ -283,11 +290,16 @@ void ScreenShipSelect(float dt)
 
     if (IsKeyPressed(KEY_ENTER))
     {
-        PlayBtnSelect();
-        G.selectedShip = G.shipSel;
-        G.screen = SCREEN_WEAPON_SELECT;
-        G.weaponSel = 0;
-        G.prevWeaponSel = -1;
+        int reqLevel = (G.shipSel == 1) ? 3 : (G.shipSel == 2) ? 10 : 0;
+        bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
+        if (!locked)
+        {
+            PlayBtnSelect();
+            G.selectedShip = G.shipSel;
+            G.screen = SCREEN_WEAPON_SELECT;
+            G.weaponSel = 0;
+            G.prevWeaponSel = -1;
+        }
     }
     if (IsKeyPressed(KEY_ESCAPE))
     {
@@ -317,14 +329,31 @@ void ScreenShipSelect(float dt)
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 2, (Color){80, 130, 200, 200});
         else
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
-        DrawShipShape((Vector2){cx, 300}, (ShipType)i, t * 3 + i, true);
-        int nw = MeasureText(names[i], 22);
-        DrawText(names[i], (int)(cx - nw / 2), 400, 22, WHITE);
-        DrawText(stats[i], (int)(cx - 100), 435, 13, LIGHTGRAY);
-        DrawText(descs[i], (int)(cx - 90), 460, 14, (Color){180, 200, 220, 255});
-        if (sel)
+            
+        int reqLevel = (i == 1) ? 3 : (i == 2) ? 10 : 0;
+        bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
+        
+        if (locked)
         {
-            DrawText("[ SELECTED ]", (int)(cx - MeasureText("[ SELECTED ]", 18) / 2), 520, 18, GOLD);
+            DrawText("LOCKED", (int)(cx - MeasureText("LOCKED", 22) / 2), 300, 22, RED);
+            const char *msg = TextFormat("Reach Sector %d-%d", (reqLevel / 10) + 1, (reqLevel % 10) + 1);
+            if (reqLevel == 10) msg = "Clear Act I";
+            DrawText(msg, (int)(cx - MeasureText(msg, 16) / 2), 340, 16, GRAY);
+            DrawText("???", (int)(cx - MeasureText("???", 22) / 2), 400, 22, DARKGRAY);
+            if (sel)
+                DrawText("[ LOCKED ]", (int)(cx - MeasureText("[ LOCKED ]", 18) / 2), 520, 18, RED);
+        }
+        else
+        {
+            DrawShipShape((Vector2){cx, 300}, (ShipType)i, t * 3 + i, true);
+            int nw = MeasureText(names[i], 22);
+            DrawText(names[i], (int)(cx - nw / 2), 400, 22, WHITE);
+            DrawText(stats[i], (int)(cx - 100), 435, 13, LIGHTGRAY);
+            DrawText(descs[i], (int)(cx - 90), 460, 14, (Color){180, 200, 220, 255});
+            if (sel)
+            {
+                DrawText("[ SELECTED ]", (int)(cx - MeasureText("[ SELECTED ]", 18) / 2), 520, 18, GOLD);
+            }
         }
     }
     DrawText("< A/D or Arrows  |  Click or ENTER to confirm  |  ESC to go back >", (SW - MeasureText("< A/D or Arrows  |  Click or ENTER to confirm  |  ESC to go back >", 16)) / 2, SH - 40, 16, (Color){140, 160, 180, 255});
@@ -436,15 +465,28 @@ void ScreenWeaponSelect(float dt)
         Rectangle card = {(float)(cx - cw / 2), 120, (float)cw, 310};
         if (CheckCollisionPointRec(mouseW, card))
         {
+            int reqLevel = (i == 3) ? 15 : (i == 4) ? 20 : 0;
+            bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
+            
             if (G.weaponSel != i)
                 G.weaponSel = i;
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !locked)
             {
                 PlayBtnSelect();
                 G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
-                G.screen = SCREEN_DIFFICULTY_SELECT;
-                G.diffSel = 1;
-                G.prevDiffSel = -1;
+                if (G.isCampaignMode)
+                {
+                    G.screen = SCREEN_GAMEPLAY;
+                    InitGame();
+                    PlayMusicStream(G.bgmGameplay);
+                    SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+                }
+                else
+                {
+                    G.screen = SCREEN_DIFFICULTY_SELECT;
+                    G.diffSel = 1;
+                    G.prevDiffSel = -1;
+                }
             }
         }
     }
@@ -456,12 +498,27 @@ void ScreenWeaponSelect(float dt)
     }
     if (IsKeyPressed(KEY_ENTER))
     {
-        PlayBtnSelect();
-        /* weaponSel 0..4 maps to WEAPON_RAILGUN(1)..WEAPON_WAVE(5) */
-        G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
-        G.screen = SCREEN_DIFFICULTY_SELECT;
-        G.diffSel = 1; /* Default to NORMAL */
-        G.prevDiffSel = -1;
+        int reqLevel = (G.weaponSel == 3) ? 15 : (G.weaponSel == 4) ? 20 : 0;
+        bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
+        if (!locked)
+        {
+            PlayBtnSelect();
+            /* weaponSel 0..4 maps to WEAPON_RAILGUN(1)..WEAPON_WAVE(5) */
+            G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
+            if (G.isCampaignMode)
+            {
+                G.screen = SCREEN_GAMEPLAY;
+                InitGame();
+                PlayMusicStream(G.bgmGameplay);
+                SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+            }
+            else
+            {
+                G.screen = SCREEN_DIFFICULTY_SELECT;
+                G.diffSel = 1; /* Default to NORMAL */
+                G.prevDiffSel = -1;
+            }
+        }
     }
     if (IsKeyPressed(KEY_ESCAPE))
     {
@@ -507,21 +564,37 @@ void ScreenWeaponSelect(float dt)
         else if (hov) DrawRectangleRoundedLinesEx(card, 0.1f, 8, 2, (Color){80, 130, 200, 200});
         else          DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
 
-        /* Preview uses indices 1-5 matching WeaponType enum */
-        DrawWeaponPreview((Vector2){(float)cx, 220}, i + 1, t);
+        int reqLevel = (i == 3) ? 15 : (i == 4) ? 20 : 0;
+        bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
 
-        int nw = MeasureText(names[i], 18);
-        DrawText(names[i], cx - nw / 2, 290, 18, WHITE);
-        int l1w = MeasureText(line1[i], 12);
-        DrawText(line1[i], cx - l1w / 2, 320, 12, LIGHTGRAY);
-        int l2w = MeasureText(line2[i], 11);
-        DrawText(line2[i], cx - l2w / 2, 340, 11, (Color){180, 200, 220, 255});
-        const char *costStr = TextFormat("Energy: %d", costs[i]);
-        int cfw = MeasureText(costStr, 13);
-        DrawText(costStr, cx - cfw / 2, 362, 13, (Color){120, 160, 255, 255});
-        if (sel) {
-            int sw2 = MeasureText("[ SELECTED ]", 14);
-            DrawText("[ SELECTED ]", cx - sw2 / 2, 390, 14, GOLD);
+        if (locked)
+        {
+            DrawText("LOCKED", cx - MeasureText("LOCKED", 18) / 2, 260, 18, RED);
+            const char *msg = TextFormat("Reach Sector %d-%d", (reqLevel / 10) + 1, (reqLevel % 10) + 1);
+            if (reqLevel == 20) msg = "Clear Act II";
+            DrawText(msg, cx - MeasureText(msg, 12) / 2, 290, 12, GRAY);
+            DrawText("???", cx - MeasureText("???", 18) / 2, 330, 18, DARKGRAY);
+            if (sel)
+                DrawText("[ LOCKED ]", cx - MeasureText("[ LOCKED ]", 14) / 2, 390, 14, RED);
+        }
+        else
+        {
+            /* Preview uses indices 1-5 matching WeaponType enum */
+            DrawWeaponPreview((Vector2){(float)cx, 220}, i + 1, t);
+
+            int nw = MeasureText(names[i], 18);
+            DrawText(names[i], cx - nw / 2, 290, 18, WHITE);
+            int l1w = MeasureText(line1[i], 12);
+            DrawText(line1[i], cx - l1w / 2, 320, 12, LIGHTGRAY);
+            int l2w = MeasureText(line2[i], 11);
+            DrawText(line2[i], cx - l2w / 2, 340, 11, (Color){180, 200, 220, 255});
+            const char *costStr = TextFormat("Energy: %d", costs[i]);
+            int cfw = MeasureText(costStr, 13);
+            DrawText(costStr, cx - cfw / 2, 362, 13, (Color){120, 160, 255, 255});
+            if (sel) {
+                int sw2 = MeasureText("[ SELECTED ]", 14);
+                DrawText("[ SELECTED ]", cx - sw2 / 2, 390, 14, GOLD);
+            }
         }
     }
 
@@ -1032,3 +1105,393 @@ void ScreenDifficultySelect(float dt)
     DrawAudioToggle();
     EndDrawing();
 }
+
+void ScreenModeSelect(float dt)
+{
+    UpdateStars(dt);
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
+        G.modeSel = (G.modeSel + 1) % 3;
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
+        G.modeSel = (G.modeSel + 2) % 3;
+
+    for (int i = 0; i < 3; i++)
+    {
+        UpdateBtn(&G.modeBtns[i], dt);
+        if (G.modeBtns[i].hovered) G.modeSel = i;
+    }
+
+    if (G.prevModeSel >= 0 && G.prevModeSel != G.modeSel)
+        if (G.audioEnabled) { SetSoundVolume(G.sfxButtonHover, G.uiVolume); PlaySound(G.sfxButtonHover); }
+    G.prevModeSel = G.modeSel;
+
+    bool enter = IsKeyPressed(KEY_ENTER);
+    for (int i = 0; i < 3; i++)
+        if (G.modeBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) { G.modeSel = i; enter = true; }
+
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        G.screen = SCREEN_MAIN_MENU;
+        G.prevMenuSel = -1;
+    }
+
+    if (enter)
+    {
+        if (G.audioEnabled) { SetSoundVolume(G.sfxButtonSelect, G.uiVolume); PlaySound(G.sfxButtonSelect); }
+        if (G.modeSel == 0)
+        {
+            G.isCampaignMode = true;
+            /* Bypass difficulty select */
+            G.screen = SCREEN_LEVEL_SELECT;
+            G.actSel = 0;
+            G.levelSel = 0;
+            G.prevLevelSel = -1;
+            /* Layout buttons: 10 levels + Back + Next Act */
+            for (int i=0; i<10; i++) {
+                int col = i % 5;
+                int row = i / 5;
+                G.levelBtns[i] = MkBtn(SW/2 - 260 + col * 110, 200 + row * 110, 80, 80, TextFormat("%d", i+1));
+            }
+            G.levelBtns[10] = MkBtn(SW/2 - 260, 450, 200, 50, "BACK");
+            G.levelBtns[11] = MkBtn(SW/2 + 60, 450, 200, 50, "NEXT ACT");
+        }
+        else if (G.modeSel == 1)
+        {
+            G.isCampaignMode = false;
+            G.screen = SCREEN_SHIP_SELECT;
+            G.shipSel = G.selectedShip;
+            G.prevShipSel = -1;
+        }
+        else if (G.modeSel == 2)
+        {
+            G.screen = SCREEN_MAIN_MENU;
+            G.prevMenuSel = -1;
+        }
+    }
+
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
+    DrawStars();
+    DrawTitle((float)GetTime());
+    DrawText("SELECT GAME MODE", (SW - MeasureText("SELECT GAME MODE", 30)) / 2, 220, 30, GOLD);
+    
+    for (int i = 0; i < 3; i++)
+        DrawBtn(G.modeBtns[i], i == G.modeSel);
+        
+    DrawAudioToggle();
+    EndDrawing();
+}
+
+void ScreenLevelSelect(float dt)
+{
+    UpdateStars(dt);
+    
+    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) G.levelSel = (G.levelSel + 1) % 12;
+    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) G.levelSel = (G.levelSel + 11) % 12;
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) 
+    {
+        if (G.levelSel < 5) {
+            if (G.levelSel < 3) G.levelSel = 10;
+            else G.levelSel = 11;
+        }
+        else if (G.levelSel < 10) G.levelSel -= 5;
+        else if (G.levelSel == 10) G.levelSel = 5;
+        else if (G.levelSel == 11) G.levelSel = 9;
+    }
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) 
+    {
+        if (G.levelSel < 5) G.levelSel += 5;
+        else if (G.levelSel < 10) {
+            if (G.levelSel < 8) G.levelSel = 10;
+            else G.levelSel = 11;
+        }
+        else if (G.levelSel == 10) G.levelSel = 0;
+        else if (G.levelSel == 11) G.levelSel = 4;
+    }
+
+    for (int i = 0; i < 12; i++)
+    {
+        UpdateBtn(&G.levelBtns[i], dt);
+        if (G.levelBtns[i].hovered) G.levelSel = i;
+    }
+
+    if (G.prevLevelSel >= 0 && G.prevLevelSel != G.levelSel)
+        if (G.audioEnabled) { SetSoundVolume(G.sfxButtonHover, G.uiVolume); PlaySound(G.sfxButtonHover); }
+    G.prevLevelSel = G.levelSel;
+
+    bool enter = IsKeyPressed(KEY_ENTER);
+    for (int i = 0; i < 12; i++)
+        if (G.levelBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) { G.levelSel = i; enter = true; }
+
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        G.screen = SCREEN_MODE_SELECT;
+        G.prevModeSel = -1;
+    }
+
+    if (enter)
+    {
+        if (G.audioEnabled) { SetSoundVolume(G.sfxButtonSelect, G.uiVolume); PlaySound(G.sfxButtonSelect); }
+        if (G.levelSel < 10)
+        {
+            int displayLevel = G.actSel * 10 + G.levelSel;
+            /* Check if unlocked using unified normal difficulty slot */
+            if (displayLevel <= G.campaignState.unlockedLevels[DIFF_NORMAL])
+            {
+                G.campaignState.currentLevel = displayLevel;
+                /* Enforce Act-locked difficulty */
+                if (G.actSel == 0) G.difficulty = DIFF_EASY;
+                else if (G.actSel == 1) G.difficulty = DIFF_NORMAL;
+                else G.difficulty = DIFF_HARD;
+
+                /* If it's the first level of an act, show narrative */
+                if (G.levelSel == 0)
+                {
+                    G.screen = SCREEN_NARRATIVE;
+                    G.narBtns[0] = MkBtn(SW/2 - 100, SH - 100, 200, 50, "CONTINUE");
+                }
+                else
+                {
+                    G.screen = SCREEN_SHIP_SELECT;
+                    G.shipSel = G.selectedShip;
+                    G.prevShipSel = -1;
+                }
+            }
+        }
+        else if (G.levelSel == 10)
+        {
+            G.screen = SCREEN_MODE_SELECT;
+            G.prevModeSel = -1;
+        }
+        else if (G.levelSel == 11)
+        {
+            G.actSel = (G.actSel + 1) % 3;
+            /* Update level button texts for new act */
+        }
+    }
+
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
+    DrawStars();
+    
+    /* === Title === */
+    const char* actNames[3] = {"ACT I: THE FRINGE", "ACT II: CORE WORLDS", "ACT III: OBLIVION"};
+    Color actColors[3] = {{100, 220, 255, 255}, {180, 100, 255, 255}, {255, 80, 80, 255}};
+    const char* actTitle = actNames[G.actSel];
+    DrawText(actTitle, (SW - MeasureText(actTitle, 36)) / 2, 60, 36, actColors[G.actSel]);
+    DrawText("SELECT LEVEL", (SW - MeasureText("SELECT LEVEL", 20)) / 2, 108, 20, (Color){160, 170, 190, 255});
+
+    /* === Level Buttons Grid === */
+    for (int i = 0; i < 12; i++)
+    {
+        if (i >= 10)
+        {
+            /* BACK / NEXT ACT buttons */
+            DrawBtn(G.levelBtns[i], i == G.levelSel);
+            continue;
+        }
+
+        int displayLevel = G.actSel * 10 + i;
+        bool locked = (displayLevel > G.campaignState.unlockedLevels[DIFF_NORMAL]);
+        bool isBoss = (i == 9);
+
+        Button b = G.levelBtns[i];
+        bool sel = (i == G.levelSel);
+        bool hov = b.hovered;
+
+        if (locked)
+        {
+            /* Dark locked card */
+            DrawRectangleRounded(b.rect, 0.2f, 8, (Color){40, 40, 55, 210});
+            if (sel)
+            {
+                /* Draw a distinct outline if selected but locked */
+                DrawRectangleRoundedLinesEx(b.rect, 0.2f, 8, 3.0f, (Color){150, 150, 150, 255});
+            }
+            else
+            {
+                DrawRectangleRoundedLinesEx(b.rect, 0.2f, 8, 1, (Color){70, 70, 90, 200});
+            }
+            
+            int lx = (int)(b.rect.x + b.rect.width/2 - MeasureText("\xe2\x98\x93", 14)/2);
+            DrawText("[X]", (int)(b.rect.x + b.rect.width/2 - MeasureText("[X]", 12)/2),
+                     (int)(b.rect.y + b.rect.height/2 - 6), 12, (Color){100, 100, 120, 200});
+            (void)lx;
+        }
+        else
+        {
+            /* Unlocked card color */
+            Color cardCol = sel   ? (isBoss ? (Color){160, 20, 20, 220} : (Color){40, 80, 170, 220}) :
+                            hov   ? (isBoss ? (Color){120, 20, 20, 200} : (Color){30, 55, 110, 200}) :
+                                    (isBoss ? (Color){80, 15, 15, 190}  : (Color){20, 30, 60, 190});
+            Color borderCol = sel ? (isBoss ? RED : (Color){100, 180, 255, 255}) :
+                              hov ? (isBoss ? (Color){200, 60, 60, 200} : (Color){80, 130, 200, 200}) :
+                                    (isBoss ? (Color){160, 40, 40, 180} : (Color){50, 70, 110, 180});
+
+            DrawRectangleRounded(b.rect, 0.2f, 8, cardCol);
+            DrawRectangleRoundedLinesEx(b.rect, 0.2f, 8, sel ? 3.0f : 1.5f, borderCol);
+
+            /* Level number */
+            const char *numStr = TextFormat("%d", i + 1);
+            int nw = MeasureText(numStr, 20);
+            Color numCol = isBoss ? (Color){255, 80, 80, 255} : WHITE;
+            DrawText(numStr, (int)(b.rect.x + b.rect.width/2 - nw/2),
+                     (int)(b.rect.y + b.rect.height/2 - (isBoss ? 14 : 10)), 20, numCol);
+
+            /* Boss indicator */
+            if (isBoss)
+            {
+                const char *bs = "!!";
+                DrawText(bs, (int)(b.rect.x + b.rect.width/2 - MeasureText(bs, 11)/2),
+                         (int)(b.rect.y + b.rect.height - 20), 11, (Color){255, 100, 100, 220});
+            }
+        }
+    }
+
+    /* === Selected Level Info Panel === */
+    if (G.levelSel < 10)
+    {
+        int displayLevel = G.actSel * 10 + G.levelSel;
+        LevelData ld = GetLevelData(displayLevel);
+        bool locked = (displayLevel > G.campaignState.unlockedLevels[DIFF_NORMAL]);
+
+        int px = SW/2 - 250, py = 530, pw = 500, ph = 85;
+        DrawRectangleRounded((Rectangle){(float)px, (float)py, (float)pw, (float)ph}, 0.12f, 8,
+                             (Color){15, 20, 45, 220});
+        DrawRectangleRoundedLinesEx((Rectangle){(float)px, (float)py, (float)pw, (float)ph}, 0.12f, 8,
+                                    1.5f, (Color){60, 80, 130, 200});
+
+        if (locked)
+        {
+            DrawText("LOCKED", px + pw/2 - MeasureText("LOCKED", 22)/2, py + 12, 22, (Color){180, 60, 60, 255});
+            DrawText("Complete previous levels to unlock.",
+                     px + pw/2 - MeasureText("Complete previous levels to unlock.", 14)/2, py + 46, 14, GRAY);
+        }
+        else
+        {
+            DrawText(ld.title, px + 16, py + 10, 20, ld.isBossLevel ? (Color){255, 100, 80, 255} : GOLD);
+            DrawText(ld.description, px + 16, py + 38, 15, (Color){180, 200, 222, 255});
+
+            /* Objective summary line */
+            const char *objStr = "";
+            if (ld.isBossLevel)                   objStr = TextFormat("Defeat %d enemies, then destroy the Sector Commander!", ld.targetEnemies);
+            else if (ld.duration > 0)              objStr = TextFormat("Survive for %.0f seconds", ld.duration);
+            else if (ld.targetEnemies > 0)         objStr = TextFormat("Defeat %d enemies", ld.targetEnemies);
+            else if (ld.targetMeteors > 0)         objStr = TextFormat("Destroy %d meteors", ld.targetMeteors);
+            DrawText(objStr, px + 16, py + 60, 13, (Color){140, 175, 215, 255});
+        }
+    }
+
+    /* === Act navigation hint === */
+    DrawText("< ESC: Mode Select  |  WASD/Arrows: Navigate  |  ENTER/Click: Launch >",
+             (SW - MeasureText("< ESC: Mode Select  |  WASD/Arrows: Navigate  |  ENTER/Click: Launch >", 14)) / 2,
+             SH - 35, 14, (Color){120, 140, 170, 200});
+
+    DrawAudioToggle();
+    EndDrawing();
+}
+
+void ScreenNarrative(float dt)
+{
+    UpdateStars(dt);
+    UpdateBtn(&G.narBtns[0], dt);
+    
+    bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE) || (G.narBtns[0].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+    
+    if (enter)
+    {
+        if (G.audioEnabled) { SetSoundVolume(G.sfxButtonSelect, G.uiVolume); PlaySound(G.sfxButtonSelect); }
+        G.screen = SCREEN_SHIP_SELECT;
+        G.shipSel = G.selectedShip;
+        G.prevShipSel = -1;
+    }
+
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawStars();
+    
+    int actIdx = G.campaignState.currentLevel / 10;
+    ActData act = GetActData(actIdx);
+    
+    DrawText(act.actName, (SW - MeasureText(act.actName, 40)) / 2, 120, 40, GOLD);
+    DrawText(act.loreText, (SW - MeasureText(act.loreText, 20)) / 2, 250, 20, WHITE);
+    
+    DrawBtn(G.narBtns[0], G.narBtns[0].hovered);
+    
+    EndDrawing();
+}
+
+void ScreenLevelComplete(float dt)
+{
+    UpdateStars(dt);
+    
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) G.lcSel = (G.lcSel + 1) % 2;
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) G.lcSel = (G.lcSel + 1) % 2;
+
+    for (int i = 0; i < 2; i++)
+    {
+        UpdateBtn(&G.lcBtns[i], dt);
+        if (G.lcBtns[i].hovered) G.lcSel = i;
+    }
+
+    bool enter = IsKeyPressed(KEY_ENTER);
+    for (int i = 0; i < 2; i++)
+        if (G.lcBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) { G.lcSel = i; enter = true; }
+
+    if (enter)
+    {
+        if (G.audioEnabled) { SetSoundVolume(G.sfxButtonSelect, G.uiVolume); PlaySound(G.sfxButtonSelect); }
+        if (G.lcSel == 0)
+        {
+            /* NEXT LEVEL — advance and reset boss flag */
+            G.campaignState.bossDefeated = false;
+            G.campaignState.currentLevel++;
+            if (G.campaignState.currentLevel >= 30)
+                G.campaignState.currentLevel = 29; /* cap at 29 */
+            if (G.campaignState.currentLevel > G.campaignState.unlockedLevels[DIFF_NORMAL])
+            {
+                G.campaignState.unlockedLevels[DIFF_NORMAL] = G.campaignState.currentLevel;
+                SaveCampaignProgress(&G);
+            }
+            G.screen = SCREEN_SHIP_SELECT;
+            G.shipSel = G.selectedShip;
+            G.prevShipSel = -1;
+        }
+        else
+        {
+            /* MENU */
+            G.screen = SCREEN_LEVEL_SELECT;
+            G.prevLevelSel = -1;
+        }
+    }
+
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
+    DrawStars();
+    
+    LevelData lcd = GetLevelData(G.campaignState.currentLevel);
+    float t = (float)GetTime();
+    
+    /* Animated golden title */
+    Color titleCol = {(unsigned char)(200 + 55*sinf(t*3)), (unsigned char)(180 + 40*sinf(t*3+1)), 0, 255};
+    DrawText("LEVEL COMPLETE!", (SW - MeasureText("LEVEL COMPLETE!", 52)) / 2, 70, 52, titleCol);
+    
+    /* Level name subtitle */
+    DrawText(lcd.title, (SW - MeasureText(lcd.title, 26)) / 2, 140, 26, (Color){150, 220, 255, 255});
+    
+    /* Stats panel */
+    int panelX = SW/2 - 200;
+    DrawRectangleRounded((Rectangle){(float)panelX, 185, 400, 160}, 0.1f, 8, (Color){20, 30, 60, 210});
+    DrawText(TextFormat("Score:              %d", G.score),    panelX + 20, 205, 22, WHITE);
+    DrawText(TextFormat("Enemies Defeated:   %d", G.enemiesDestroyed), panelX + 20, 235, 22, (Color){255, 120, 120, 255});
+    DrawText(TextFormat("Meteors Destroyed:  %d", G.meteorsDestroyed), panelX + 20, 265, 22, (Color){200, 160, 80, 255});
+    
+    for (int i = 0; i < 2; i++)
+        DrawBtn(G.lcBtns[i], i == G.lcSel);
+        
+    DrawAudioToggle();
+    EndDrawing();
+}
+

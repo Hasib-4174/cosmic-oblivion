@@ -494,6 +494,7 @@ static void DestroyEnemy(int ei, Vector2 hitPos)
     int points = 150;
     if (e->type == SHIP_DESTROYER)  points = 500;
     else if (e->type == SHIP_TITAN) points = 1500;
+    else if (e->type == SHIP_BOSS) points = 10000;
 
     /* Difficulty score multiplier */
     float scoreMul = (G.difficulty == DIFF_EASY) ? 0.7f :
@@ -502,9 +503,15 @@ static void DestroyEnemy(int ei, Vector2 hitPos)
 
     G.score += points;
     G.enemiesDestroyed++;
+    
+    if (G.isCampaignMode && e->type == SHIP_BOSS)
+    {
+        G.campaignState.bossDefeated = true;
+    }
 
 
-    int dropChance = (e->type == SHIP_TITAN) ? 40 :
+    int dropChance = (e->type == SHIP_BOSS) ? 100 :
+                     (e->type == SHIP_TITAN) ? 40 :
                      (e->type == SHIP_DESTROYER) ? 15 : 5;
                      
     /* Difficulty drop multiplier */
