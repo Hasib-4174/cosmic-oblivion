@@ -144,6 +144,8 @@ typedef struct
     Vector2 pos, vel;
     float rotation, speed;
     float fireCooldown;
+    float specialTimer;
+    int state;
     int hp;
     ShipType type;
     bool active;

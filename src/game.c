@@ -179,6 +179,7 @@ void InitGame(void)
     if (G.isCampaignMode)
     {
         G.campaignState.levelTimer = 0;
+        G.campaignState.bossDefeated = false;
     }
 
     /* Set initial rates based on difficulty */
@@ -260,6 +261,20 @@ void UpdateGame(float dt)
         bool stopMeteors = (ldata.targetMeteors > 0 && G.meteorsDestroyed >= ldata.targetMeteors);
         bool stopEnemies = (ldata.targetEnemies > 0 && G.enemiesDestroyed >= ldata.targetEnemies);
         
+        if (ldata.isBossLevel)
+        {
+            bool bossSpawned = false;
+            for (int e = 0; e < MAX_ENEMIES; e++)
+            {
+                if (G.enemies[e].active && G.enemies[e].type == SHIP_BOSS)
+                {
+                    bossSpawned = true;
+                    break;
+                }
+            }
+            if (!bossSpawned) stopEnemies = false; // Keep spawning so the boss can spawn
+        }
+
         initRate = stopMeteors ? 999.0f : ldata.meteorSpawnRate;
         rateFloor = initRate;
         rampSpeed = 0;

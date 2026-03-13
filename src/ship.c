@@ -1,6 +1,11 @@
 #include "include/ship.h"
 #include "include/helpers.h"
+#include "include/campaign.h"
+#include "include/game.h"
 #include <math.h>
+#include <stdlib.h>
+
+extern GameState G;
 
 void DrawShipShape(Vector2 p, ShipType t, float hover, bool engineOn)
 {
@@ -476,47 +481,141 @@ void DrawEnemyShip(Vector2 pos, ShipType t, float rotation)
     }
     else if (t == SHIP_BOSS)
     {
-        // HYPER-DETAILED ENEMY BOSS (The Sector Commander)
-        // ----------------------------------------
-        // Layer 0: Massive Ominous Core Aura
-        float bossAura = 0.5f + 0.5f * sinf(time * 2.0f);
-        DrawCircleGradient((int)p.x, (int)p.y, 120 + bossAura * 40, CAlpha(ORANGE, 40), BLANK);
-        DrawCircleGradient((int)p.x, (int)p.y, 80 + bossAura * 20, CAlpha(RED, 60), BLANK);
-
-        // Layer 1: Central Obelisk Hull (Diamond/Hexagon shape)
-        DrawTriangle((Vector2){p.x, p.y + 100}, (Vector2){p.x - 60, p.y}, (Vector2){p.x + 60, p.y}, (Color){15, 5, 5, 255});
-        DrawTriangle((Vector2){p.x, p.y - 120}, (Vector2){p.x + 60, p.y}, (Vector2){p.x - 60, p.y}, (Color){15, 5, 5, 255});
-        DrawTriangle((Vector2){p.x, p.y + 80}, (Vector2){p.x - 40, p.y}, (Vector2){p.x + 40, p.y}, (Color){40, 10, 10, 255}); // Inner lighter
-        DrawTriangle((Vector2){p.x, p.y - 100}, (Vector2){p.x + 40, p.y}, (Vector2){p.x - 40, p.y}, (Color){40, 10, 10, 255});
-
-        // Layer 2: Floating Wing Arrays
-        float wingFloat = sinf(time * 3.0f) * 15.0f;
-        // Left Wing
-        DrawTriangle((Vector2){p.x - 70, p.y + 40}, (Vector2){p.x - 140, p.y - 20 - wingFloat}, (Vector2){p.x - 30, p.y - 60}, (Color){20, 0, 5, 255});
-        DrawLineEx((Vector2){p.x - 140, p.y - 20 - wingFloat}, (Vector2){p.x - 70, p.y + 40}, 4.0f, CAlpha(ORANGE, 150));
-        // Right Wing
-        DrawTriangle((Vector2){p.x + 70, p.y + 40}, (Vector2){p.x + 30, p.y - 60}, (Vector2){p.x + 140, p.y - 20 - wingFloat}, (Color){20, 0, 5, 255});
-        DrawLineEx((Vector2){p.x + 140, p.y - 20 - wingFloat}, (Vector2){p.x + 70, p.y + 40}, 4.0f, CAlpha(ORANGE, 150));
-
-        // Layer 3: Weapon Pods
-        DrawCircleV((Vector2){p.x - 70, p.y + 40}, 15, (Color){30, 0, 0, 255});
-        DrawCircleV((Vector2){p.x - 70, p.y + 40}, 8, RED);
-        DrawCircleV((Vector2){p.x + 70, p.y + 40}, 15, (Color){30, 0, 0, 255});
-        DrawCircleV((Vector2){p.x + 70, p.y + 40}, 8, RED);
-
-        // Layer 4: Exposed Energy Core (Pulsing wildly)
-        float corePulse = sinf(time * 15.0f);
-        DrawCircleV((Vector2){p.x, p.y}, 25 + corePulse * 5, (Color){60, 0, 0, 255});
-        DrawCircleV((Vector2){p.x, p.y}, 15 + corePulse * 3, MAROON);
-        DrawCircleV((Vector2){p.x, p.y}, 8, WHITE);
-        if (corePulse > 0.5f) {
-            DrawLineEx((Vector2){p.x, p.y}, (Vector2){p.x + Rf(-30, 30), p.y + Rf(-30, 30)}, 2.0f, YELLOW);
-            DrawLineEx((Vector2){p.x, p.y}, (Vector2){p.x + Rf(-30, 30), p.y + Rf(-30, 30)}, 2.0f, ORANGE);
-        }
+        int act = G.campaignState.currentLevel / 10;
         
-        // Layer 5: Dark Matter Exhaust trails
-        unsigned char ea = (unsigned char)(150 + GetRandomValue(0, 100));
-        DrawTriangle((Vector2){p.x - 20, p.y - 80}, (Vector2){p.x, p.y - 180}, (Vector2){p.x + 20, p.y - 80}, CAlpha(RED, ea));
-        DrawTriangle((Vector2){p.x - 10, p.y - 90}, (Vector2){p.x, p.y - 150}, (Vector2){p.x + 10, p.y - 90}, CAlpha(YELLOW, ea));
+        if (act == 0)
+        {
+            // ACT 0: FRINGE COMMANDER (Hexagonal Obelisk / Scythe Dash concept)
+            // ----------------------------------------
+            float bossAura = 0.5f + 0.5f * sinf(time * 2.0f);
+            DrawCircleGradient((int)p.x, (int)p.y, 120 + bossAura * 40, CAlpha(ORANGE, 40), BLANK);
+            DrawCircleGradient((int)p.x, (int)p.y, 80 + bossAura * 20, CAlpha(RED, 60), BLANK);
+
+            // Layer 1: Central Obelisk Hull (Diamond/Hexagon shape)
+            DrawTriangle((Vector2){p.x, p.y + 100}, (Vector2){p.x - 60, p.y}, (Vector2){p.x + 60, p.y}, (Color){15, 5, 5, 255});
+            DrawTriangle((Vector2){p.x, p.y - 120}, (Vector2){p.x + 60, p.y}, (Vector2){p.x - 60, p.y}, (Color){15, 5, 5, 255});
+            DrawTriangle((Vector2){p.x, p.y + 80}, (Vector2){p.x - 40, p.y}, (Vector2){p.x + 40, p.y}, (Color){40, 10, 10, 255});
+            DrawTriangle((Vector2){p.x, p.y - 100}, (Vector2){p.x + 40, p.y}, (Vector2){p.x - 40, p.y}, (Color){40, 10, 10, 255});
+
+            // Layer 2: Floating Wing Arrays
+            float wingFloat = sinf(time * 3.0f) * 15.0f;
+            DrawTriangle((Vector2){p.x - 70, p.y + 40}, (Vector2){p.x - 140, p.y - 20 - wingFloat}, (Vector2){p.x - 30, p.y - 60}, (Color){20, 0, 5, 255});
+            DrawLineEx((Vector2){p.x - 140, p.y - 20 - wingFloat}, (Vector2){p.x - 70, p.y + 40}, 4.0f, CAlpha(ORANGE, 150));
+            DrawTriangle((Vector2){p.x + 70, p.y + 40}, (Vector2){p.x + 30, p.y - 60}, (Vector2){p.x + 140, p.y - 20 - wingFloat}, (Color){20, 0, 5, 255});
+            DrawLineEx((Vector2){p.x + 140, p.y - 20 - wingFloat}, (Vector2){p.x + 70, p.y + 40}, 4.0f, CAlpha(ORANGE, 150));
+
+            // Layer 3: Weapon Pods
+            DrawCircleV((Vector2){p.x - 70, p.y + 40}, 15, (Color){30, 0, 0, 255});
+            DrawCircleV((Vector2){p.x - 70, p.y + 40}, 8, RED);
+            DrawCircleV((Vector2){p.x + 70, p.y + 40}, 15, (Color){30, 0, 0, 255});
+            DrawCircleV((Vector2){p.x + 70, p.y + 40}, 8, RED);
+
+            // Layer 4: Exposed Energy Core
+            float corePulse = sinf(time * 15.0f);
+            DrawCircleV((Vector2){p.x, p.y}, 25 + corePulse * 5, (Color){60, 0, 0, 255});
+            DrawCircleV((Vector2){p.x, p.y}, 15 + corePulse * 3, MAROON);
+            DrawCircleV((Vector2){p.x, p.y}, 8, WHITE);
+            if (corePulse > 0.5f) {
+                DrawLineEx((Vector2){p.x, p.y}, (Vector2){p.x + Rf(-30, 30), p.y + Rf(-30, 30)}, 2.0f, YELLOW);
+                DrawLineEx((Vector2){p.x, p.y}, (Vector2){p.x + Rf(-30, 30), p.y + Rf(-30, 30)}, 2.0f, ORANGE);
+            }
+            
+            // Layer 5: Dark Matter Exhaust
+            unsigned char ea = (unsigned char)(150 + GetRandomValue(0, 100));
+            DrawTriangle((Vector2){p.x - 20, p.y - 80}, (Vector2){p.x, p.y - 180}, (Vector2){p.x + 20, p.y - 80}, CAlpha(RED, ea));
+            DrawTriangle((Vector2){p.x - 10, p.y - 90}, (Vector2){p.x, p.y - 150}, (Vector2){p.x + 10, p.y - 90}, CAlpha(YELLOW, ea));
+        }
+        else if (act == 1)
+        {
+            // ACT 1: CORE WORLDS COMMANDER (Goliath Fortress / Double-hulled saucer)
+            // ----------------------------------------
+            float shieldPulse = 0.5f + 0.5f * sinf(time * 3.0f);
+            DrawCircleGradient((int)p.x, (int)p.y, 160, CAlpha(SKYBLUE, (unsigned char)(20 + 30*shieldPulse)), BLANK);
+
+            // Main double-hull saucer Body
+            DrawEllipse((int)p.x, (int)p.y, 120, 60, (Color){25, 25, 30, 255});     // Bottom hull
+            DrawEllipse((int)p.x, (int)p.y - 10, 100, 45, (Color){40, 45, 55, 255}); // Top hull
+            DrawEllipse((int)p.x, (int)p.y - 20, 70, 30, (Color){60, 70, 85, 255});  // Bridge tier
+
+            // Central command dome
+            DrawEllipse((int)p.x, (int)p.y - 30, 30, 15, (Color){15, 80, 150, 255});
+            DrawEllipse((int)p.x, (int)p.y - 32, 20, 8, (Color){100, 200, 255, 255});
+            
+            // Massive twin forward railguns
+            DrawRectangleV((Vector2){p.x - 50, p.y + 10}, (Vector2){14, 80}, (Color){20, 20, 20, 255});
+            DrawRectangleV((Vector2){p.x + 36, p.y + 10}, (Vector2){14, 80}, (Color){20, 20, 20, 255});
+            DrawRectangleV((Vector2){p.x - 47, p.y + 15}, (Vector2){8, 70}, (Color){40, 40, 45, 255});
+            DrawRectangleV((Vector2){p.x + 39, p.y + 15}, (Vector2){8, 70}, (Color){40, 40, 45, 255});
+            
+            // Railgun charge glow
+            float gunCharge = 0.5f + 0.5f * sinf(time * 10.0f);
+            DrawRectangleV((Vector2){p.x - 45, p.y + 60}, (Vector2){4, 25}, CAlpha(SKYBLUE, (unsigned char)(100 + 155*gunCharge)));
+            DrawRectangleV((Vector2){p.x + 41, p.y + 60}, (Vector2){4, 25}, CAlpha(SKYBLUE, (unsigned char)(100 + 155*gunCharge)));
+            
+            // Engines (Multiple small horizontal array)
+            unsigned char ea = (unsigned char)(180 + GetRandomValue(0, 70));
+            for(int i=-3; i<=3; i++) {
+                DrawCircleV((Vector2){p.x + i*20, p.y - 45 - abs(i*5)}, 8, CAlpha(WHITE, ea));
+                DrawCircleV((Vector2){p.x + i*20, p.y - 45 - abs(i*5)}, 16, CAlpha(SKYBLUE, ea));
+                DrawLineEx((Vector2){p.x + i*20, p.y - 45 - abs(i*5)}, (Vector2){p.x + i*20, p.y - 80 - abs(i*5) - (float)GetRandomValue(0,20)}, 4.0f, CAlpha(SKYBLUE, ea));
+            }
+        }
+        else
+        {
+            // ACT 2: OBLIVION COMMANDER (Dark Matter Leviathan)
+            // ----------------------------------------
+            // Shifting dark void aura
+            float voidPulse = time * 2.0f;
+            for(int i=0; i<3; i++) {
+                float angle = voidPulse + i * (PI*2.0f/3.0f);
+                Vector2 off = {cosf(angle)*15, sinf(angle)*15};
+                DrawCircleGradient((int)(p.x+off.x), (int)(p.y+off.y), 150, CAlpha(PURPLE, 30), BLANK);
+                DrawCircleGradient((int)(p.x-off.x), (int)(p.y-off.y), 120, CAlpha((Color){20,0,30,255}, 50), BLANK);
+            }
+
+            // Central core (organic looking eye)
+            DrawEllipse((int)p.x, (int)p.y, 50, 80, (Color){10, 0, 15, 255});
+            DrawEllipse((int)p.x, (int)p.y, 30, 60, (Color){30, 0, 50, 255});
+            DrawEllipse((int)p.x, (int)p.y + 10, 15, 40, (Color){150, 0, 255, 255}); // The Iris
+            DrawEllipse((int)p.x, (int)p.y + 10, 5, 25, WHITE); // The Pupil
+
+            // Multi-jointed angular appendages (Scythe arms)
+            float armBreathe = sinf(time * 4.0f) * 10;
+            // Top Left Arm
+            DrawTriangle((Vector2){p.x - 30, p.y - 30}, (Vector2){p.x - 120 - armBreathe, p.y - 80 + armBreathe}, (Vector2){p.x - 70, p.y}, (Color){15, 5, 20, 255});
+            DrawTriangle((Vector2){p.x - 120 - armBreathe, p.y - 80 + armBreathe}, (Vector2){p.x - 160 - armBreathe, p.y - 20}, (Vector2){p.x - 70, p.y}, (Color){25, 10, 35, 255});
+            DrawLineEx((Vector2){p.x - 120 - armBreathe, p.y - 80 + armBreathe}, (Vector2){p.x - 160 - armBreathe, p.y - 20}, 3.0f, PURPLE);
+            
+            // Top Right Arm
+            DrawTriangle((Vector2){p.x + 30, p.y - 30}, (Vector2){p.x + 70, p.y}, (Vector2){p.x + 120 + armBreathe, p.y - 80 + armBreathe}, (Color){15, 5, 20, 255});
+            DrawTriangle((Vector2){p.x + 120 + armBreathe, p.y - 80 + armBreathe}, (Vector2){p.x + 70, p.y}, (Vector2){p.x + 160 + armBreathe, p.y - 20}, (Color){25, 10, 35, 255});
+            DrawLineEx((Vector2){p.x + 120 + armBreathe, p.y - 80 + armBreathe}, (Vector2){p.x + 160 + armBreathe, p.y - 20}, 3.0f, PURPLE);
+
+            // Bottom Left Arm
+            DrawTriangle((Vector2){p.x - 40, p.y + 40}, (Vector2){p.x - 100 - armBreathe, p.y + 100 - armBreathe}, (Vector2){p.x - 20, p.y + 60}, (Color){15, 5, 20, 255});
+            DrawLineEx((Vector2){p.x - 40, p.y + 40}, (Vector2){p.x - 100 - armBreathe, p.y + 100 - armBreathe}, 4.0f, (Color){100, 0, 200, 255});
+            
+            // Bottom Right Arm
+            DrawTriangle((Vector2){p.x + 40, p.y + 40}, (Vector2){p.x + 20, p.y + 60}, (Vector2){p.x + 100 + armBreathe, p.y + 100 - armBreathe}, (Color){15, 5, 20, 255});
+            DrawLineEx((Vector2){p.x + 40, p.y + 40}, (Vector2){p.x + 100 + armBreathe, p.y + 100 - armBreathe}, 4.0f, (Color){100, 0, 200, 255});
+
+            // Veins / Energy channels pulsing outward
+            for(int i=0; i<6; i++) {
+                float ang = (time * 0.5f) + i * PI / 3;
+                Vector2 start = {p.x + cosf(ang)*20, p.y + sinf(ang)*20};
+                Vector2 end = {p.x + cosf(ang)*(60 + 20*sinf(time*7.0f)), p.y + sinf(ang)*(60 + 20*sinf(time*7.0f))};
+                DrawLineEx(start, end, 2.0f, CAlpha(VIOLET, 180));
+            }
+            
+            // Floating orbs (defense spheres)
+            for(int i=0; i<4; i++) {
+                float orbAng = time * -1.5f + i * PI / 2;
+                Vector2 orb = {p.x + cosf(orbAng)*90, p.y + sinf(orbAng)*60};
+                DrawCircleV(orb, 12, (Color){40, 0, 60, 255});
+                DrawCircleV(orb, 6, PURPLE);
+                DrawCircleV(orb, 3, WHITE);
+                DrawLineEx(orb, p, 1.0f, CAlpha(PURPLE, 100)); // Tether
+            }
+        }
     }
 }

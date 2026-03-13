@@ -96,12 +96,24 @@ void SpawnEnemy(void)
                             break;
                         }
                     }
-                    if (!bossExists)
+                        if (!bossExists)
                     {
                         e->type = SHIP_BOSS;
-                        e->hp = 250 + act * 100;
-                        e->speed = 40.0f;
-                        e->fireCooldown = 2.0f;
+                        e->state = 0;
+                        e->specialTimer = 0.0f;
+                        if (act == 0) {
+                            e->hp = 500;
+                            e->speed = 40.0f;
+                            e->fireCooldown = 2.0f;
+                        } else if (act == 1) {
+                            e->hp = 1000;
+                            e->speed = 50.0f;
+                            e->fireCooldown = 1.0f;
+                        } else {
+                            e->hp = 2000;
+                            e->speed = 60.0f;
+                            e->fireCooldown = 0.5f;
+                        }
                         return; // Boss spawned
                     }
                 }
@@ -164,13 +176,101 @@ void UpdateEnemies(float dt)
         }
         else if (e->type == SHIP_BOSS)
         {
-            /* Boss hovers at the top and strafes left/right */
-            target.y = 150.0f;
-            dir.y = target.y - e->pos.y;
-            force.y = (dir.y > 0 ? 1 : -1) * e->speed * 0.5f;
+            int act = G.campaignState.currentLevel / 10;
+            e->specialTimer += dt;
             
-            /* Strafe using sine wave over time */
-            force.x = sinf(G.gameTime * 0.5f) * e->speed;
+            if (act == 0) // Act 0: Fringe Commander (Scythe Dash)
+            {
+                if (e->state == 0) // Normal hover
+                {
+                    target.y = 150.0f;
+                    dir.y = target.y - e->pos.y;
+                    force.y = (dir.y > 0 ? 1 : -1) * e->speed * 0.5f;
+                    force.x = sinf(G.gameTime * 0.5f) * e->speed;
+                    
+                    if (e->specialTimer >= 8.0f) {
+                        e->state = 1; // Start dash
+                        e->specialTimer = 0.0f;
+                    }
+                }
+                else if (e->state == 1) // Dashing down
+                {
+                    force.x = 0;
+                    force.y = e->speed * 3.0f; // Fast charge
+                    if (e->pos.y > SH - 100.0f) {
+                        e->state = 2; // Retreat
+                    }
+                }
+                else if (e->state == 2) // Retreating up
+                {
+                    force.x = 0;
+                    force.y = -e->speed * 1.5f; // Retreat
+                    if (e->pos.y <= 150.0f) {
+                        e->state = 0;
+                        e->specialTimer = 0.0f;
+                    }
+                }
+            }
+            else if (act == 1) // Act 1: Core Worlds Commander (Nova Ring)
+            {
+                if (e->state == 0) // Normal Figure-8
+                {
+                    /* Figure-8 pattern */
+                    force.x = cosf(G.gameTime * 0.5f) * e->speed * 1.5f;
+                    force.y = sinf(G.gameTime * 1.0f) * e->speed * 0.5f;
+                    
+                    if (e->specialTimer >= 5.0f) {
+                        e->state = 1; // Stop and prepare Nova
+                        e->specialTimer = 0.0f;
+                        e->vel = (Vector2){0, 0}; // Brake immediately
+                    }
+                }
+                else if (e->state == 1) // Charging Nova
+                {
+                    force.x = 0; force.y = 0; // Stationary
+                    if (e->specialTimer >= 1.0f) {
+                        // Fire Nova Ring (handled in shooting section)
+                        e->state = 0;
+                        e->specialTimer = 0.0f;
+                    }
+                }
+            }
+            else // Act 2: Oblivion Commander (Wall of Death / Teleports)
+            {
+                if (e->state == 0) // Follow erratic
+                {
+                    float targetX = G.player.pos.x;
+                    float dx = targetX - e->pos.x;
+                    
+                    if (e->specialTimer < 6.0f)
+                    {
+                        force.x = (dx > 0 ? 1 : -1) * e->speed * 2.0f;
+                        if (fabsf(dx) < 20.0f) force.x = 0;
+                        
+                        target.y = 150.0f + sinf(G.gameTime) * 50.0f;
+                        force.y = (target.y - e->pos.y > 0 ? 1 : -1) * e->speed * 0.5f;
+                    }
+                    else
+                    {
+                        e->state = 1; // Wall of Death!
+                        e->specialTimer = 0.0f;
+                    }
+                }
+                else if (e->state == 1) // Wall of Death pattern
+                {
+                    // Move to center top smoothly
+                    float targetX = SW / 2.0f;
+                    float targetY = 100.0f;
+                    force.x = (targetX - e->pos.x > 0 ? 1 : -1) * e->speed * 2.0f;
+                    force.y = (targetY - e->pos.y > 0 ? 1 : -1) * e->speed * 2.0f;
+                    
+                    if (fabsf(targetX - e->pos.x) < 20.0f && fabsf(targetY - e->pos.y) < 20.0f && e->specialTimer > 1.5f) {
+                         // Fire Wall (handled in shooting section)
+                         e->state = 0;
+                         e->specialTimer = 0.0f;
+                    }
+                }
+            }
         }
 
         // Bullet Evasion Logic (Bosses do not evade)
@@ -287,30 +387,112 @@ void UpdateEnemies(float dt)
         {
             if (e->type == SHIP_BOSS)
             {
-                e->fireCooldown = Rf(1.5f, 2.5f);
-                /* Massive 5-way spread shot: fire bullets with x-offset positions
-                 * to simulate angular spread since Bullet has no vel field. */
-                float spreadX[] = {-120, -60, 0, 60, 120};
-                for (int s = 0; s < 5; s++)
+                int act = G.campaignState.currentLevel / 10;
+                
+                if (act == 0)
                 {
-                    for (int b = 0; b < MAX_BULLETS; b++)
+                    if (e->state == 0) // Only fire while hovering
                     {
-                        if (!G.bullets[b].active)
+                        e->fireCooldown = Rf(1.5f, 2.5f);
+                        float spreadX[] = {-120, -60, 0, 60, 120};
+                        for (int s = 0; s < 5; s++)
                         {
-                            /* Offset the spawn X so bullets travel to different X positions
-                             * at the bottom — creates a real visual spread fan. */
-                            G.bullets[b].pos = (Vector2){e->pos.x + spreadX[s] * 0.15f, e->pos.y + 40};
-                            G.bullets[b].speed = 260.0f + fabsf(spreadX[s]) * 0.5f;
-                            G.bullets[b].active = true;
-                            G.bullets[b].isEnemy = true;
-                            /* We encode horizontal drift via the x-position offset.
-                             * game.c moves bullets only vertically, so we pre-shift
-                             * the spawn position to different lanes. */
-                            break;
+                            for (int b = 0; b < MAX_BULLETS; b++)
+                            {
+                                if (!G.bullets[b].active)
+                                {
+                                    G.bullets[b].pos = (Vector2){e->pos.x + spreadX[s] * 0.15f, e->pos.y + 40};
+                                    G.bullets[b].speed = 260.0f + fabsf(spreadX[s]) * 0.5f;
+                                    G.bullets[b].active = true;
+                                    G.bullets[b].isEnemy = true;
+                                    break;
+                                }
+                            }
                         }
+                        PlayEnemyShootSound();
                     }
                 }
-                PlayEnemyShootSound();
+                else if (act == 1)
+                {
+                    if (e->state == 1 && e->specialTimer >= 0.95f) // Nova Ring
+                    {
+                        e->fireCooldown = 1.0f; // Prevent immediate normal fire
+                        // Fire 16 straight down but spread out
+                        for (int s = 0; s < 16; s++) {
+                            for (int b = 0; b < MAX_BULLETS; b++) {
+                                if (!G.bullets[b].active) {
+                                    float driftX = -300 + s * 40; // Wide horizontal spread
+                                    G.bullets[b].pos = (Vector2){e->pos.x + driftX * 0.1f, e->pos.y + 40};
+                                    G.bullets[b].speed = 200.0f + fabsf(driftX) * 0.3f;
+                                    G.bullets[b].active = true;
+                                    G.bullets[b].isEnemy = true;
+                                    break;
+                                }
+                            }
+                        }
+                        PlayEnemyShootSound();
+                    }
+                    else if (e->state == 0) // Normal Rapid twin streams
+                    {
+                        e->fireCooldown = 0.4f;
+                        float offsetsX[] = {-25, 25};
+                        for (int s = 0; s < 2; s++)
+                        {
+                            for (int b = 0; b < MAX_BULLETS; b++)
+                            {
+                                if (!G.bullets[b].active)
+                                {
+                                    G.bullets[b].pos = (Vector2){e->pos.x + offsetsX[s], e->pos.y + 30};
+                                    G.bullets[b].speed = 400.0f;
+                                    G.bullets[b].active = true;
+                                    G.bullets[b].isEnemy = true;
+                                    break;
+                                }
+                            }
+                        }
+                        PlayEnemyShootSound();
+                    }
+                }
+                else // Act 2
+                {
+                    if (e->state == 1 && e->specialTimer > 1.45f) // Wall of Death
+                    {
+                        e->fireCooldown = 2.0f;
+                        for (int s = 0; s < 9; s++) {
+                            for (int b = 0; b < MAX_BULLETS; b++) {
+                                if (!G.bullets[b].active) {
+                                    float spreadX = -400 + s * 100;
+                                    G.bullets[b].pos = (Vector2){e->pos.x + spreadX * 0.2f, e->pos.y + 50};
+                                    G.bullets[b].speed = 300.0f;
+                                    G.bullets[b].active = true;
+                                    G.bullets[b].isEnemy = true;
+                                    break;
+                                }
+                            }
+                        }
+                        PlayEnemyShootSound();
+                    }
+                    else if (e->state == 0) // Complex Barrage
+                    {
+                        e->fireCooldown = 1.2f;
+                        float spread[] = {-50, 0, 50, -15, 15};
+                        for (int s = 0; s < 5; s++)
+                        {
+                            for (int b = 0; b < MAX_BULLETS; b++)
+                            {
+                                if (!G.bullets[b].active)
+                                {
+                                    G.bullets[b].pos = (Vector2){e->pos.x + spread[s] * 0.2f, e->pos.y + 40};
+                                    G.bullets[b].speed = (s < 3) ? 250.0f : 450.0f;
+                                    G.bullets[b].active = true;
+                                    G.bullets[b].isEnemy = true;
+                                    break;
+                                }
+                            }
+                        }
+                        PlayEnemyShootSound();
+                    }
+                }
             }
             else if (e->type == SHIP_TITAN)
             {
@@ -375,8 +557,13 @@ void UpdateEnemies(float dt)
         // Screen bounds (stay in top 20% of screen)
         if (e->type == SHIP_BOSS)
         {
+            int act = G.campaignState.currentLevel / 10;
             e->pos.x = Clampf(e->pos.x, 100, SW - 100);
-            e->pos.y = Clampf(e->pos.y, -150, SH * 0.3f);
+            if (act == 0 && e->state == 1) { // Dashing down
+                e->pos.y = Clampf(e->pos.y, -150, SH - 50);
+            } else {
+                e->pos.y = Clampf(e->pos.y, -150, SH * 0.3f);
+            }
         }
         else
         {
