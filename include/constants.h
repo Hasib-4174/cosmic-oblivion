@@ -134,7 +134,7 @@ typedef struct
 typedef struct
 {
     Vector2 pos;
-    float speed;
+    Vector2 vel;
     bool active;
     bool isEnemy;
 } Bullet;

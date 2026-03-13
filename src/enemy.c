@@ -179,95 +179,127 @@ void UpdateEnemies(float dt)
             int act = G.campaignState.currentLevel / 10;
             e->specialTimer += dt;
             
-            if (act == 0) // Act 0: Fringe Commander (Scythe Dash)
+            if (act == 0) // Act 0: Fringe Commander (Scythe Dash + Targeted Bursts)
             {
-                if (e->state == 0) // Normal hover
+                if (e->state == 0) // Sweep side to side
                 {
-                    target.y = 150.0f;
+                    target.y = 120.0f;
                     dir.y = target.y - e->pos.y;
                     force.y = (dir.y > 0 ? 1 : -1) * e->speed * 0.5f;
-                    force.x = sinf(G.gameTime * 0.5f) * e->speed;
                     
-                    if (e->specialTimer >= 8.0f) {
-                        e->state = 1; // Start dash
+                    float sweep = sinf(G.gameTime * 1.5f);
+                    force.x = sweep * e->speed * 3.0f;
+                    
+                    if (e->specialTimer >= 4.0f) {
+                        e->state = 1; // Targeted Burst
                         e->specialTimer = 0.0f;
                     }
                 }
-                else if (e->state == 1) // Dashing down
+                else if (e->state == 1) // Targeted Burst Pause
                 {
                     force.x = 0;
-                    force.y = e->speed * 3.0f; // Fast charge
-                    if (e->pos.y > SH - 100.0f) {
-                        e->state = 2; // Retreat
+                    force.y = 0;
+                    e->vel.x *= 0.9f;
+                    e->vel.y *= 0.9f;
+                    if (e->specialTimer >= 2.0f) {
+                        e->state = 2; // Scythe Dash
+                        e->specialTimer = 0.0f;
                     }
                 }
-                else if (e->state == 2) // Retreating up
+                else if (e->state == 2) // Scythe Dash down
                 {
                     force.x = 0;
-                    force.y = -e->speed * 1.5f; // Retreat
-                    if (e->pos.y <= 150.0f) {
+                    force.y = e->speed * 4.5f; // Very Fast charge
+                    if (e->pos.y > SH - 80.0f) {
+                        e->state = 3; // Retreat
+                    }
+                }
+                else if (e->state == 3) // Retreating up
+                {
+                    force.x = 0;
+                    force.y = -e->speed * 2.0f; // Retreat
+                    if (e->pos.y <= 120.0f) {
                         e->state = 0;
                         e->specialTimer = 0.0f;
                     }
                 }
             }
-            else if (act == 1) // Act 1: Core Worlds Commander (Nova Ring)
+            else if (act == 1) // Act 1: Core Worlds Commander (Nova Ring + Orbital Barrage)
             {
-                if (e->state == 0) // Normal Figure-8
+                if (e->state == 0) // Normal tracking + Twin Streams
                 {
-                    /* Figure-8 pattern */
-                    force.x = cosf(G.gameTime * 0.5f) * e->speed * 1.5f;
-                    force.y = sinf(G.gameTime * 1.0f) * e->speed * 0.5f;
+                    float dx = G.player.pos.x - e->pos.x;
+                    force.x = (dx > 0 ? 1 : -1) * e->speed * 1.5f;
+                    if (fabsf(dx) < 30) force.x = 0;
                     
-                    if (e->specialTimer >= 5.0f) {
-                        e->state = 1; // Stop and prepare Nova
+                    target.y = 140.0f + sinf(G.gameTime * 2.0f) * 40.0f;
+                    force.y = (target.y - e->pos.y) * 2.0f;
+                    
+                    if (e->specialTimer >= 4.0f) {
+                        e->state = 1; // Prepare Nova
                         e->specialTimer = 0.0f;
-                        e->vel = (Vector2){0, 0}; // Brake immediately
+                        e->vel = (Vector2){0, 0};
                     }
                 }
                 else if (e->state == 1) // Charging Nova
                 {
-                    force.x = 0; force.y = 0; // Stationary
-                    if (e->specialTimer >= 1.0f) {
-                        // Fire Nova Ring (handled in shooting section)
+                    force.x = 0; force.y = 0;
+                    if (e->specialTimer >= 1.5f) {
+                        e->state = 2; // Transition to Orbital Barrage after Nova
+                        e->specialTimer = 0.0f;
+                    }
+                }
+                else if (e->state == 2) // Orbital Barrage (Fast Circle)
+                {
+                    float a = G.gameTime * 3.0f;
+                    Vector2 center = {SW/2.0f, 180.0f};
+                    target = (Vector2){center.x + cosf(a)*250, center.y + sinf(a)*80};
+                    force.x = (target.x - e->pos.x) * 4.0f;
+                    force.y = (target.y - e->pos.y) * 4.0f;
+                    
+                    if (e->specialTimer >= 6.0f) {
                         e->state = 0;
                         e->specialTimer = 0.0f;
                     }
                 }
             }
-            else // Act 2: Oblivion Commander (Wall of Death / Teleports)
+            else // Act 2: Oblivion Commander (The Final Terror)
             {
-                if (e->state == 0) // Follow erratic
+                if (e->state == 0) // Chaotic Erratic Tracking
                 {
-                    float targetX = G.player.pos.x;
-                    float dx = targetX - e->pos.x;
+                    float dx = G.player.pos.x - e->pos.x;
+                    force.x = (dx > 0 ? 1 : -1) * e->speed * 2.5f;
+                    if (fabsf(dx) < 20) force.x = 0;
                     
-                    if (e->specialTimer < 6.0f)
-                    {
-                        force.x = (dx > 0 ? 1 : -1) * e->speed * 2.0f;
-                        if (fabsf(dx) < 20.0f) force.x = 0;
-                        
-                        target.y = 150.0f + sinf(G.gameTime) * 50.0f;
-                        force.y = (target.y - e->pos.y > 0 ? 1 : -1) * e->speed * 0.5f;
-                    }
-                    else
-                    {
+                    target.y = 120.0f + cosf(G.gameTime * 3.0f) * 60.0f;
+                    force.y = (target.y - e->pos.y) * 3.0f;
+                    
+                    if (e->specialTimer >= 6.0f) {
                         e->state = 1; // Wall of Death!
                         e->specialTimer = 0.0f;
                     }
                 }
-                else if (e->state == 1) // Wall of Death pattern
+                else if (e->state == 1) // Wall of Death Positioning
                 {
-                    // Move to center top smoothly
-                    float targetX = SW / 2.0f;
-                    float targetY = 100.0f;
-                    force.x = (targetX - e->pos.x > 0 ? 1 : -1) * e->speed * 2.0f;
-                    force.y = (targetY - e->pos.y > 0 ? 1 : -1) * e->speed * 2.0f;
+                    // Move to top center
+                    target = (Vector2){SW/2.0f, 100.0f};
+                    force.x = (target.x - e->pos.x) * 2.0f;
+                    force.y = (target.y - e->pos.y) * 2.0f;
                     
-                    if (fabsf(targetX - e->pos.x) < 20.0f && fabsf(targetY - e->pos.y) < 20.0f && e->specialTimer > 1.5f) {
-                         // Fire Wall (handled in shooting section)
-                         e->state = 0;
-                         e->specialTimer = 0.0f;
+                    if (e->specialTimer >= 4.0f) { // After 4 seconds of walls, go Vortex
+                        e->state = 2; 
+                        e->specialTimer = 0.0f;
+                    }
+                }
+                else if (e->state == 2) // Void Vortex (Spinning in center)
+                {
+                    target = (Vector2){SW/2.0f, SH/3.0f};
+                    force.x = (target.x - e->pos.x) * 5.0f;
+                    force.y = (target.y - e->pos.y) * 5.0f;
+                    
+                    if (e->specialTimer >= 5.0f) {
+                        e->state = 0;
+                        e->specialTimer = 0.0f;
                     }
                 }
             }
@@ -391,18 +423,67 @@ void UpdateEnemies(float dt)
                 
                 if (act == 0)
                 {
-                    if (e->state == 0) // Only fire while hovering
+                    if (e->state == 0) // Sweep firing
                     {
-                        e->fireCooldown = Rf(1.5f, 2.5f);
-                        float spreadX[] = {-120, -60, 0, 60, 120};
-                        for (int s = 0; s < 5; s++)
+                        e->fireCooldown = 0.2f; // Fast continuous rain
+                        float spreadX[] = {-40, 40};
+                        for (int s = 0; s < 2; s++)
                         {
                             for (int b = 0; b < MAX_BULLETS; b++)
                             {
                                 if (!G.bullets[b].active)
                                 {
-                                    G.bullets[b].pos = (Vector2){e->pos.x + spreadX[s] * 0.15f, e->pos.y + 40};
-                                    G.bullets[b].speed = 260.0f + fabsf(spreadX[s]) * 0.5f;
+                                    G.bullets[b].pos = (Vector2){e->pos.x + spreadX[s], e->pos.y + 40};
+                                    G.bullets[b].vel = (Vector2){0, 300.0f};
+                                    G.bullets[b].active = true;
+                                    G.bullets[b].isEnemy = true;
+                                    break;
+                                }
+                            }
+                        }
+                        PlayEnemyShootSound();
+                    }
+                    else if (e->state == 1) // Targeted Burst
+                    {
+                        e->fireCooldown = 0.4f; // Slower burst but aimed
+                        float dx = G.player.pos.x - e->pos.x;
+                        float dy = G.player.pos.y - e->pos.y;
+                        float dist = sqrtf(dx*dx + dy*dy);
+                        if (dist > 1.0f) { dx /= dist; dy /= dist; }
+                        else { dx = 0; dy = 1; }
+                        
+                        float angles[] = {-0.15f, 0, 0.15f}; // 3-way aimed
+                        float baseAngle = atan2f(dy, dx);
+                        
+                        for (int s = 0; s < 3; s++)
+                        {
+                            for (int b = 0; b < MAX_BULLETS; b++)
+                            {
+                                if (!G.bullets[b].active)
+                                {
+                                    float a = baseAngle + angles[s];
+                                    G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y + 40};
+                                    G.bullets[b].vel = (Vector2){cosf(a)*400.0f, sinf(a)*400.0f};
+                                    G.bullets[b].active = true;
+                                    G.bullets[b].isEnemy = true;
+                                    break;
+                                }
+                            }
+                        }
+                        PlayEnemyShootSound();
+                    }
+                    else if (e->state == 2) // Dashing - fire ring
+                    {
+                        e->fireCooldown = 0.5f;
+                        for (int s = 0; s < 8; s++)
+                        {
+                            for (int b = 0; b < MAX_BULLETS; b++)
+                            {
+                                if (!G.bullets[b].active)
+                                {
+                                    float a = s * (3.14159f * 2.0f / 8.0f);
+                                    G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y + 20};
+                                    G.bullets[b].vel = (Vector2){cosf(a)*200.0f, sinf(a)*200.0f};
                                     G.bullets[b].active = true;
                                     G.bullets[b].isEnemy = true;
                                     break;
@@ -414,16 +495,16 @@ void UpdateEnemies(float dt)
                 }
                 else if (act == 1)
                 {
-                    if (e->state == 1 && e->specialTimer >= 0.95f) // Nova Ring
+                    if (e->state == 1 && e->specialTimer >= 1.45f) // Nova Ring
                     {
-                        e->fireCooldown = 1.0f; // Prevent immediate normal fire
-                        // Fire 16 straight down but spread out
+                        e->fireCooldown = 1.5f;
+                        // Massive 16-way explosion
                         for (int s = 0; s < 16; s++) {
                             for (int b = 0; b < MAX_BULLETS; b++) {
                                 if (!G.bullets[b].active) {
-                                    float driftX = -300 + s * 40; // Wide horizontal spread
-                                    G.bullets[b].pos = (Vector2){e->pos.x + driftX * 0.1f, e->pos.y + 40};
-                                    G.bullets[b].speed = 200.0f + fabsf(driftX) * 0.3f;
+                                    float a = s * (3.14159f * 2.0f / 16.0f);
+                                    G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y};
+                                    G.bullets[b].vel = (Vector2){cosf(a)*400.0f, sinf(a)*400.0f};
                                     G.bullets[b].active = true;
                                     G.bullets[b].isEnemy = true;
                                     break;
@@ -432,10 +513,17 @@ void UpdateEnemies(float dt)
                         }
                         PlayEnemyShootSound();
                     }
-                    else if (e->state == 0) // Normal Rapid twin streams
+                    else if (e->state == 0) // Rapid Twin Targeted Streams
                     {
-                        e->fireCooldown = 0.4f;
-                        float offsetsX[] = {-25, 25};
+                        e->fireCooldown = 0.25f;
+                        float offsetsX[] = {-40, 40};
+                        
+                        float dx = G.player.pos.x - e->pos.x;
+                        float dy = G.player.pos.y - e->pos.y;
+                        float dist = sqrtf(dx*dx + dy*dy);
+                        if (dist > 1.0f) { dx /= dist; dy /= dist; }
+                        else { dx = 0; dy = 1; }
+                        
                         for (int s = 0; s < 2; s++)
                         {
                             for (int b = 0; b < MAX_BULLETS; b++)
@@ -443,11 +531,28 @@ void UpdateEnemies(float dt)
                                 if (!G.bullets[b].active)
                                 {
                                     G.bullets[b].pos = (Vector2){e->pos.x + offsetsX[s], e->pos.y + 30};
-                                    G.bullets[b].speed = 400.0f;
+                                    G.bullets[b].vel = (Vector2){dx * 500.0f, dy * 500.0f};
                                     G.bullets[b].active = true;
                                     G.bullets[b].isEnemy = true;
                                     break;
                                 }
+                            }
+                        }
+                        PlayEnemyShootSound();
+                    }
+                    else if (e->state == 2) // Orbital Barrage - Continuous fire
+                    {
+                        e->fireCooldown = 0.15f;
+                        for (int b = 0; b < MAX_BULLETS; b++)
+                        {
+                            if (!G.bullets[b].active)
+                            {
+                                float a = G.gameTime * 5.0f; // Spiralling effect
+                                G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y};
+                                G.bullets[b].vel = (Vector2){cosf(a)*350.0f, sinf(a)*350.0f};
+                                G.bullets[b].active = true;
+                                G.bullets[b].isEnemy = true;
+                                break;
                             }
                         }
                         PlayEnemyShootSound();
@@ -455,15 +560,15 @@ void UpdateEnemies(float dt)
                 }
                 else // Act 2
                 {
-                    if (e->state == 1 && e->specialTimer > 1.45f) // Wall of Death
+                    if (e->state == 1) // Wall of Death
                     {
-                        e->fireCooldown = 2.0f;
-                        for (int s = 0; s < 9; s++) {
+                        e->fireCooldown = 0.8f;
+                        for (int s = 0; s < 12; s++) {
                             for (int b = 0; b < MAX_BULLETS; b++) {
                                 if (!G.bullets[b].active) {
-                                    float spreadX = -400 + s * 100;
-                                    G.bullets[b].pos = (Vector2){e->pos.x + spreadX * 0.2f, e->pos.y + 50};
-                                    G.bullets[b].speed = 300.0f;
+                                    float xOff = -500 + s * 90;
+                                    G.bullets[b].pos = (Vector2){e->pos.x + xOff * 0.1f, e->pos.y + 20};
+                                    G.bullets[b].vel = (Vector2){xOff * 0.1f, 250.0f};
                                     G.bullets[b].active = true;
                                     G.bullets[b].isEnemy = true;
                                     break;
@@ -472,18 +577,18 @@ void UpdateEnemies(float dt)
                         }
                         PlayEnemyShootSound();
                     }
-                    else if (e->state == 0) // Complex Barrage
+                    else if (e->state == 0) // Chaotic Pulse Barrage
                     {
-                        e->fireCooldown = 1.2f;
-                        float spread[] = {-50, 0, 50, -15, 15};
+                        e->fireCooldown = 0.5f;
                         for (int s = 0; s < 5; s++)
                         {
                             for (int b = 0; b < MAX_BULLETS; b++)
                             {
                                 if (!G.bullets[b].active)
                                 {
-                                    G.bullets[b].pos = (Vector2){e->pos.x + spread[s] * 0.2f, e->pos.y + 40};
-                                    G.bullets[b].speed = (s < 3) ? 250.0f : 450.0f;
+                                    float a = (G.gameTime * 2.0f) + s * (3.14159f * 2.0f / 5.0f);
+                                    G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y};
+                                    G.bullets[b].vel = (Vector2){cosf(a)*450.0f, sinf(a)*450.0f};
                                     G.bullets[b].active = true;
                                     G.bullets[b].isEnemy = true;
                                     break;
@@ -491,6 +596,23 @@ void UpdateEnemies(float dt)
                             }
                         }
                         PlayEnemyShootSound();
+                    }
+                    else if (e->state == 2) // Void Vortex (Insane spinning fire)
+                    {
+                        e->fireCooldown = 0.06f; // Extremely rapid
+                        for (int b = 0; b < MAX_BULLETS; b++)
+                        {
+                            if (!G.bullets[b].active)
+                            {
+                                float a = G.gameTime * 20.0f; 
+                                G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y};
+                                G.bullets[b].vel = (Vector2){cosf(a)*500.0f, sinf(a)*500.0f};
+                                G.bullets[b].active = true;
+                                G.bullets[b].isEnemy = true;
+                                break;
+                            }
+                        }
+                        // Sound handled by fast fire
                     }
                 }
             }
@@ -506,7 +628,7 @@ void UpdateEnemies(float dt)
                         if (!G.bullets[b].active)
                         {
                             G.bullets[b].pos = (Vector2){e->pos.x + offsetsX[s], e->pos.y + 40};
-                            G.bullets[b].speed = 350.0f;
+                            G.bullets[b].vel = (Vector2){0, 350.0f};
                             G.bullets[b].active = true;
                             G.bullets[b].isEnemy = true;
                             break;
@@ -527,7 +649,7 @@ void UpdateEnemies(float dt)
                         if (!G.bullets[b].active)
                         {
                             G.bullets[b].pos = (Vector2){e->pos.x + offsetsX[s], e->pos.y + 30};
-                            G.bullets[b].speed = 450.0f;
+                            G.bullets[b].vel = (Vector2){0, 450.0f};
                             G.bullets[b].active = true;
                             G.bullets[b].isEnemy = true;
                             break;
@@ -544,7 +666,7 @@ void UpdateEnemies(float dt)
                     if (!G.bullets[b].active)
                     {
                         G.bullets[b].pos = (Vector2){e->pos.x, e->pos.y + 20};
-                        G.bullets[b].speed = 500.0f;
+                        G.bullets[b].vel = (Vector2){0, 500.0f};
                         G.bullets[b].active = true;
                         G.bullets[b].isEnemy = true;
                         break;

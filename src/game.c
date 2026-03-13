@@ -394,7 +394,7 @@ void UpdateGame(float dt)
                     {
                         if (!G.bullets[i].active)
                         {
-                            G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, 600, true, false};
+                            G.bullets[i] = (Bullet){{pl->pos.x + d * 10, pl->pos.y - 26}, {0, -600}, true, false};
                             PlayFiringSound();
                             break;
                         }
@@ -409,7 +409,7 @@ void UpdateGame(float dt)
                     {
                         if (!G.bullets[i].active)
                         {
-                            G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, 550, true, false};
+                            G.bullets[i] = (Bullet){{pl->pos.x + d * 12, pl->pos.y - 20}, {0, -550}, true, false};
                             PlayFiringSound();
                             break;
                         }
@@ -422,7 +422,7 @@ void UpdateGame(float dt)
                 {
                     if (!G.bullets[i].active)
                     {
-                        G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, 650, true, false};
+                        G.bullets[i] = (Bullet){{pl->pos.x, pl->pos.y - 28}, {0, -650}, true, false};
                         PlayFiringSound();
                         break;
                     }
@@ -460,14 +460,10 @@ void UpdateGame(float dt)
     {
         if (!G.bullets[i].active)
             continue;
-        
-        float speed = G.bullets[i].speed;
-        if (G.bullets[i].isEnemy)
-            G.bullets[i].pos.y += speed * dt;
-        else
-            G.bullets[i].pos.y -= speed * dt;
+        G.bullets[i].pos.x += G.bullets[i].vel.x * dt;
+        G.bullets[i].pos.y += G.bullets[i].vel.y * dt;
 
-        if (G.bullets[i].pos.y < -20 || G.bullets[i].pos.y > SH + 20)
+        if (G.bullets[i].pos.y < -20 || G.bullets[i].pos.y > SH + 20 || G.bullets[i].pos.x < -20 || G.bullets[i].pos.x > SW + 20)
             G.bullets[i].active = false;
     }
     G.meteorTimer += dt;
