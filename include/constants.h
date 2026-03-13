@@ -267,6 +267,14 @@ struct GameState
     /* Shield activation sound */
     Sound sfxShieldOn;
 
+    /* Special weapon sounds */
+    Sound sfxRailgun;
+    Sound sfxFlakCannon;
+    Sound sfxTeslaLink;
+    Sound sfxSingularitySpin;
+    Sound sfxSingularityBlast;
+    Sound sfxWaveBeam;
+
     /* Previous selection trackers (for button hover sound deduplication) */
     int prevMenuSel, prevPauseSel, prevGoSel, prevOptSel, prevAudioSel, prevShipSel, prevWeaponSel;
 
