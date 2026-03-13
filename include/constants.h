@@ -287,7 +287,7 @@ struct GameState
     int modeSel, prevModeSel;
     Button levelBtns[15];
     int actSel, levelSel, prevLevelSel;
-    Button lcBtns[2];
+    Button lcBtns[3];
     int lcSel, prevLcSel;
     Button narBtns[1];
 };

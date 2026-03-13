@@ -1236,7 +1236,7 @@ void ScreenLevelSelect(float dt)
         {
             int displayLevel = G.actSel * 10 + G.levelSel;
             /* Check if unlocked using unified normal difficulty slot */
-            if (displayLevel <= G.campaignState.unlockedLevels[DIFF_NORMAL])
+            if (displayLevel <= GetMaxUnlockedLevel(&G))
             {
                 G.campaignState.currentLevel = displayLevel;
                 /* Enforce Act-locked difficulty */
@@ -1293,7 +1293,7 @@ void ScreenLevelSelect(float dt)
         }
 
         int displayLevel = G.actSel * 10 + i;
-        bool locked = (displayLevel > G.campaignState.unlockedLevels[DIFF_NORMAL]);
+        bool locked = (displayLevel > GetMaxUnlockedLevel(&G));
         bool isBoss = (i == 9);
 
         Button b = G.levelBtns[i];
@@ -1354,7 +1354,7 @@ void ScreenLevelSelect(float dt)
     {
         int displayLevel = G.actSel * 10 + G.levelSel;
         LevelData ld = GetLevelData(displayLevel);
-        bool locked = (displayLevel > G.campaignState.unlockedLevels[DIFF_NORMAL]);
+        bool locked = (displayLevel > GetMaxUnlockedLevel(&G));
 
         int px = SW/2 - 250, py = 530, pw = 500, ph = 85;
         DrawRectangleRounded((Rectangle){(float)px, (float)py, (float)pw, (float)ph}, 0.12f, 8,
@@ -1426,17 +1426,17 @@ void ScreenLevelComplete(float dt)
 {
     UpdateStars(dt);
     
-    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) G.lcSel = (G.lcSel + 1) % 2;
-    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) G.lcSel = (G.lcSel + 1) % 2;
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) G.lcSel = (G.lcSel + 1) % 3;
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) G.lcSel = (G.lcSel + 2) % 3;
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
         UpdateBtn(&G.lcBtns[i], dt);
         if (G.lcBtns[i].hovered) G.lcSel = i;
     }
 
     bool enter = IsKeyPressed(KEY_ENTER);
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
         if (G.lcBtns[i].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) { G.lcSel = i; enter = true; }
 
     if (enter)
@@ -1458,11 +1458,17 @@ void ScreenLevelComplete(float dt)
             G.shipSel = G.selectedShip;
             G.prevShipSel = -1;
         }
-        else
+        else if (G.lcSel == 1)
         {
-            /* MENU */
+            /* LEVEL SELECT */
             G.screen = SCREEN_LEVEL_SELECT;
             G.prevLevelSel = -1;
+        }
+        else
+        {
+            /* MAIN MENU */
+            G.screen = SCREEN_MAIN_MENU;
+            G.prevMenuSel = -1;
         }
     }
 
@@ -1474,21 +1480,22 @@ void ScreenLevelComplete(float dt)
     LevelData lcd = GetLevelData(G.campaignState.currentLevel);
     float t = (float)GetTime();
     
-    /* Animated golden title */
-    Color titleCol = {(unsigned char)(200 + 55*sinf(t*3)), (unsigned char)(180 + 40*sinf(t*3+1)), 0, 255};
-    DrawText("LEVEL COMPLETE!", (SW - MeasureText("LEVEL COMPLETE!", 52)) / 2, 70, 52, titleCol);
+    /* Animated glowing title like Game Over */
+    Color titleCol = ColorFromHSV(fmodf(t * 60, 360), 0.8f, 1);
+    const char *title = "LEVEL COMPLETE!";
+    int tw = MeasureText(title, 56);
+    DrawText(title, (SW - tw) / 2 + 2, 112, 56, CAlpha(titleCol, 60));
+    DrawText(title, (SW - tw) / 2, 110, 56, titleCol);
     
     /* Level name subtitle */
-    DrawText(lcd.title, (SW - MeasureText(lcd.title, 26)) / 2, 140, 26, (Color){150, 220, 255, 255});
+    DrawText(lcd.title, (SW - MeasureText(lcd.title, 26)) / 2, 180, 26, (Color){150, 220, 255, 255});
     
-    /* Stats panel */
-    int panelX = SW/2 - 200;
-    DrawRectangleRounded((Rectangle){(float)panelX, 185, 400, 160}, 0.1f, 8, (Color){20, 30, 60, 210});
-    DrawText(TextFormat("Score:              %d", G.score),    panelX + 20, 205, 22, WHITE);
-    DrawText(TextFormat("Enemies Defeated:   %d", G.enemiesDestroyed), panelX + 20, 235, 22, (Color){255, 120, 120, 255});
-    DrawText(TextFormat("Meteors Destroyed:  %d", G.meteorsDestroyed), panelX + 20, 265, 22, (Color){200, 160, 80, 255});
+    /* Stats similar to Game Over centering */
+    DrawText(TextFormat("Score: %d", G.score), (SW - MeasureText(TextFormat("Score: %d", G.score), 30)) / 2, 240, 30, WHITE);
+    DrawText(TextFormat("Meteors Destroyed: %d", G.meteorsDestroyed), (SW - MeasureText(TextFormat("Meteors Destroyed: %d", G.meteorsDestroyed), 20)) / 2, 280, 20, LIGHTGRAY);
+    DrawText(TextFormat("Enemies Defeated: %d", G.enemiesDestroyed), (SW - MeasureText(TextFormat("Enemies Defeated: %d", G.enemiesDestroyed), 20)) / 2, 310, 20, RED);
     
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
         DrawBtn(G.lcBtns[i], i == G.lcSel);
         
     DrawAudioToggle();

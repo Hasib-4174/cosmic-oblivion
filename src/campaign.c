@@ -165,5 +165,10 @@ bool CheckLevelComplete(const struct GameState *G)
 
 int GetMaxUnlockedLevel(const struct GameState *G)
 {
+#ifndef NDEBUG
+    (void)G;
+    return 29;
+#else
     return G->campaignState.unlockedLevels[DIFF_NORMAL];
+#endif
 }
