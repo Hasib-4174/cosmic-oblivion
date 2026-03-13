@@ -53,6 +53,13 @@ static void WeaponPlayEnemyDestroy(void)
     PlaySound(G.sfxEnemyDestroy);
 }
 
+static void WeaponPlaySfx(Sound snd)
+{
+    if (!G.audioEnabled) return;
+    SetSoundVolume(snd, G.gameplayVolume);
+    PlaySound(snd);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Spawn a weapon projectile into the first free slot                 */
 /* ------------------------------------------------------------------ */
@@ -95,6 +102,7 @@ void FireAdvancedWeapon(void)
     {
         /* Hitscan beam — instant damage + visual effect projectile */
         SpawnWP(pl->pos, (Vector2){0, 0}, 0.25f, pl->pos.x, 0, WEAPON_RAILGUN);
+        WeaponPlaySfx(G.sfxRailgun);
         G.shakeTimer = 0.15f;
         G.shakeMag = 5;
 
@@ -133,6 +141,7 @@ void FireAdvancedWeapon(void)
         // Faster and longer range flak shell
         SpawnWP((Vector2){pl->pos.x, pl->pos.y - 20},
                 (Vector2){0, -550}, 2.0f, pl->pos.x, 0, WEAPON_FLAK);
+        WeaponPlaySfx(G.sfxFlakCannon);
         if (pl->type == SHIP_TITAN || pl->type == SHIP_DESTROYER)
         {
             SpawnWP((Vector2){pl->pos.x - 15, pl->pos.y - 15},
@@ -167,6 +176,7 @@ void FireAdvancedWeapon(void)
         {
             Vector2 tPos = tType == 0 ? G.enemies[tIdx].pos : G.meteors[tIdx].pos;
             SpawnWP(pl->pos, tPos, 0.15f, 0, 0, WEAPON_TESLA);
+            WeaponPlaySfx(G.sfxTeslaLink);
             if (tType == 0)
             {
                 G.enemies[tIdx].hp -= 1;
@@ -232,6 +242,7 @@ void FireAdvancedWeapon(void)
             SpawnWP(pl->pos,
                     (Vector2){pl->pos.x + Rf(-40, 40), pl->pos.y - 120},
                     0.15f, 0, 0, WEAPON_TESLA);
+            WeaponPlaySfx(G.sfxTeslaLink);
         }
     }
     else if (wt == WEAPON_SINGULARITY)
@@ -239,6 +250,7 @@ void FireAdvancedWeapon(void)
         // Slower movement, longer duration to reach top
         SpawnWP((Vector2){pl->pos.x, pl->pos.y - 20},
                 (Vector2){0, -180}, 6.0f, pl->pos.x, 0, WEAPON_SINGULARITY);
+        WeaponPlaySfx(G.sfxSingularitySpin);
     }
     else if (wt == WEAPON_WAVE)
     {
@@ -246,6 +258,7 @@ void FireAdvancedWeapon(void)
                 (Vector2){0, -450}, 0.0f, pl->pos.x - 10, 0, WEAPON_WAVE);
         SpawnWP((Vector2){pl->pos.x + 10, pl->pos.y - 20},
                 (Vector2){0, -450}, 0.0f, pl->pos.x + 10, 1, WEAPON_WAVE);
+        WeaponPlaySfx(G.sfxWaveBeam);
         if (pl->type == SHIP_TITAN)
         {
             SpawnWP((Vector2){pl->pos.x - 20, pl->pos.y - 10},
@@ -323,6 +336,7 @@ void UpdateWeaponProjs(float dt)
             {
                 /* Gravity burst: huge damage on collapse */
                 p->active = false;
+                WeaponPlaySfx(G.sfxSingularityBlast);
                 SpawnP(p->pos, PURPLE, 80, 500, 7.0f);
                 SpawnP(p->pos, VIOLET, 50, 400, 5.0f);
                 SpawnP(p->pos, WHITE, 20, 200, 3.0f);

@@ -54,6 +54,14 @@ int main(void)
     /* Load shield activation sound */
     G.sfxShieldOn = LoadSound("audio/shield/shield_on.ogg");
 
+    /* Load special weapon sounds */
+    G.sfxRailgun          = LoadSound("audio/special_weapons/railgun.mp3");
+    G.sfxFlakCannon       = LoadSound("audio/special_weapons/flak_cannon.mp3");
+    G.sfxTeslaLink        = LoadSound("audio/special_weapons/tesla_link.mp3");
+    G.sfxSingularitySpin  = LoadSound("audio/special_weapons/singularity_spin.mp3");
+    G.sfxSingularityBlast = LoadSound("audio/special_weapons/singularity_blast.mp3");
+    G.sfxWaveBeam         = LoadSound("audio/special_weapons/wave_beam.wav");
+
     /* Initialize prev selection trackers to -1 */
     G.prevMenuSel = -1;
     G.prevPauseSel = -1;
@@ -193,6 +201,14 @@ int main(void)
 
     /* Shield activation */
     UnloadSound(G.sfxShieldOn);
+
+    /* Special weapon sounds */
+    UnloadSound(G.sfxRailgun);
+    UnloadSound(G.sfxFlakCannon);
+    UnloadSound(G.sfxTeslaLink);
+    UnloadSound(G.sfxSingularitySpin);
+    UnloadSound(G.sfxSingularityBlast);
+    UnloadSound(G.sfxWaveBeam);
 
     /* Firing sounds */
     for (int i = 0; i < 8; i++)
