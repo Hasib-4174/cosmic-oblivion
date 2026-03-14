@@ -13,6 +13,7 @@
 #include "include/collision.h"
 #include "include/weapon.h"
 #include "include/campaign.h"
+#include "include/subship.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -221,6 +222,7 @@ void InitGame(void)
     G.isFiring = false;
     InitPlayer();
     InitWeaponProjs();
+    InitSubShip();
 }
 
 void UpdateGame(float dt)
@@ -838,6 +840,7 @@ void UpdateGame(float dt)
     
     UpdateWeaponProjs(dt);
     CheckWeaponCollisions();
+    UpdateSubShips(dt);
     UpdateParticles(dt);
 
     if (G.isCampaignMode)
@@ -1079,6 +1082,7 @@ void DrawGameplay(void)
         }
     }
     DrawWeaponEffects();
+    DrawSubShips();
     if (G.player.alive)
     {
         if (G.player.damageFlash > 0)
@@ -1138,6 +1142,7 @@ void DrawGameplay(void)
     }
     DrawHPBar(G.player);
     DrawEnergyBar();
+    DrawSubShipHUD();
 
     if (G.isCampaignMode)
     {

@@ -8,6 +8,7 @@
 #include "include/meteor.h"
 #include "include/game.h"
 #include "include/campaign.h"
+#include "include/subship.h"
 #include <math.h>
 #include <string.h>
 
@@ -475,19 +476,9 @@ void ScreenWeaponSelect(float dt)
             {
                 PlayBtnSelect();
                 G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
-                if (G.isCampaignMode)
-                {
-                    G.screen = SCREEN_GAMEPLAY;
-                    InitGame();
-                    PlayMusicStream(G.bgmGameplay);
-                    SetMusicVolume(G.bgmGameplay, G.bgmVolume);
-                }
-                else
-                {
-                    G.screen = SCREEN_DIFFICULTY_SELECT;
-                    G.diffSel = 1;
-                    G.prevDiffSel = -1;
-                }
+                G.screen = SCREEN_SUBSHIP_SELECT;
+                G.podSel = 0;
+                G.prevPodSel = -1;
             }
         }
     }
@@ -506,19 +497,9 @@ void ScreenWeaponSelect(float dt)
             PlayBtnSelect();
             /* weaponSel 0..4 maps to WEAPON_RAILGUN(1)..WEAPON_WAVE(5) */
             G.selectedWeapon = (WeaponType)(G.weaponSel + 1);
-            if (G.isCampaignMode)
-            {
-                G.screen = SCREEN_GAMEPLAY;
-                InitGame();
-                PlayMusicStream(G.bgmGameplay);
-                SetMusicVolume(G.bgmGameplay, G.bgmVolume);
-            }
-            else
-            {
-                G.screen = SCREEN_DIFFICULTY_SELECT;
-                G.diffSel = 1; /* Default to NORMAL */
-                G.prevDiffSel = -1;
-            }
+            G.screen = SCREEN_SUBSHIP_SELECT;
+            G.podSel = 0;
+            G.prevPodSel = -1;
         }
     }
     if (IsKeyPressed(KEY_ESCAPE))
@@ -596,6 +577,200 @@ void ScreenWeaponSelect(float dt)
                 int sw2 = MeasureText("[ SELECTED ]", 14);
                 DrawText("[ SELECTED ]", cx - sw2 / 2, 390, 14, GOLD);
             }
+        }
+    }
+
+    const char *hint = "< A/D or Arrows  |  Click or ENTER to confirm  |  ESC back >";
+    DrawText(hint, (SW - MeasureText(hint, 16)) / 2, SH - 40, 16,
+             (Color){140, 160, 180, 255});
+    DrawAudioToggle();
+    EndDrawing();
+}
+
+/* ---- Pod icon mini-drawing ---- */
+static void DrawPodIcon(Vector2 c, int podType, float t)
+{
+    float pulse = 0.5f + 0.5f * sinf(t * 4.0f);
+    if (podType == 0) /* FABRICATOR */
+    {
+        Color gc = (Color){80, 255, 120, 255};
+        /* Green cross / heal symbol */
+        DrawRectangle((int)c.x - 3, (int)c.y - 12, 6, 24, gc);
+        DrawRectangle((int)c.x - 12, (int)c.y - 3, 24, 6, gc);
+        DrawCircleGradient((int)c.x, (int)c.y, 18 + pulse * 6, CAlpha(gc, 40), BLANK);
+        /* Orbiting glow */
+        float a = t * 3.0f;
+        DrawCircleV((Vector2){c.x + cosf(a) * 20, c.y + sinf(a) * 20}, 3, CAlpha(gc, 180));
+        DrawCircleV((Vector2){c.x + cosf(a + 3.14f) * 20, c.y + sinf(a + 3.14f) * 20}, 3, CAlpha(gc, 180));
+    }
+    else if (podType == 1) /* SALVO */
+    {
+        Color rc = (Color){255, 160, 40, 255};
+        /* Rocket shapes */
+        for (int i = -1; i <= 1; i++)
+        {
+            float yOff = sinf(t * 5.0f + i * 1.5f) * 5.0f;
+            int rx = (int)c.x + i * 12;
+            int ry = (int)(c.y + yOff);
+            DrawTriangle((Vector2){rx, ry - 10}, (Vector2){rx + 4, ry + 6}, (Vector2){rx - 4, ry + 6}, rc);
+            DrawCircleV((Vector2){rx, ry + 8}, 3, CAlpha(ORANGE, (unsigned char)(150 + 100 * pulse)));
+        }
+        /* Exhaust glow */
+        DrawCircleGradient((int)c.x, (int)c.y + 10, 15 + pulse * 4, CAlpha(ORANGE, 40), BLANK);
+    }
+    else /* SENTINEL */
+    {
+        Color sc = (Color){100, 180, 255, 255};
+        /* EMP ring expanding */
+        float ringSize = fmodf(t * 2.0f, 1.0f);
+        DrawCircleLines((int)c.x, (int)c.y, 10 + ringSize * 20, CAlpha(sc, (unsigned char)(255 * (1.0f - ringSize))));
+        DrawCircleLines((int)c.x, (int)c.y, 10 + fmodf(t * 2.0f + 0.5f, 1.0f) * 20,
+                        CAlpha(sc, (unsigned char)(255 * (1.0f - fmodf(t * 2.0f + 0.5f, 1.0f)))));
+        /* Center core */
+        DrawCircleV(c, 8, (Color){30, 60, 100, 255});
+        DrawCircleV(c, 5 + pulse * 2, sc);
+        DrawCircleV(c, 3, WHITE);
+    }
+}
+
+void ScreenSubShipSelect(float dt)
+{
+    UpdateStars(dt);
+    int oldSel = G.podSel;
+    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+        G.podSel = (G.podSel + 2) % 3;
+    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+        G.podSel = (G.podSel + 1) % 3;
+
+    /* Mouse hover on pod cards */
+    Vector2 mouse = GetMousePosition();
+    for (int i = 0; i < 3; i++)
+    {
+        float cx = SW / 2 + (i - 1) * 280.0f;
+        Rectangle card = {cx - 110, 160, 220, 380};
+        if (CheckCollisionPointRec(mouse, card))
+        {
+            if (G.podSel != i)
+                G.podSel = i;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                PlayBtnSelect();
+                G.selectedPod = (PodType)G.podSel;
+                if (G.isCampaignMode)
+                {
+                    G.screen = SCREEN_GAMEPLAY;
+                    InitGame();
+                    StopMusicStream(G.bgmMenu);
+                    if (G.audioEnabled)
+                    {
+                        PlayMusicStream(G.bgmGameplay);
+                        SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+                    }
+                }
+                else
+                {
+                    G.screen = SCREEN_DIFFICULTY_SELECT;
+                    G.diffSel = 1;
+                    G.prevDiffSel = -1;
+                }
+            }
+        }
+    }
+
+    /* Play hover sound on selection change */
+    if (G.podSel != oldSel)
+    {
+        if (G.prevPodSel >= 0)
+            PlayBtnHover();
+        G.prevPodSel = G.podSel;
+    }
+
+    if (IsKeyPressed(KEY_ENTER))
+    {
+        PlayBtnSelect();
+        G.selectedPod = (PodType)G.podSel;
+        if (G.isCampaignMode)
+        {
+            G.screen = SCREEN_GAMEPLAY;
+            InitGame();
+            StopMusicStream(G.bgmMenu);
+            if (G.audioEnabled)
+            {
+                PlayMusicStream(G.bgmGameplay);
+                SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+            }
+        }
+        else
+        {
+            G.screen = SCREEN_DIFFICULTY_SELECT;
+            G.diffSel = 1;
+            G.prevDiffSel = -1;
+        }
+    }
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        G.screen = SCREEN_WEAPON_SELECT;
+        G.prevWeaponSel = -1;
+    }
+
+    BeginDrawing();
+    ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
+    DrawStars();
+    DrawText("SELECT AUX POD",
+             (SW - MeasureText("SELECT AUX POD", 36)) / 2, 40, 36, WHITE);
+    DrawText("Choose a support drone to assist your ship in combat",
+             (SW - MeasureText("Choose a support drone to assist your ship in combat", 14)) / 2,
+             82, 14, (Color){160, 180, 200, 255});
+
+    const char *names[3] = {"FABRICATOR", "SALVO", "SENTINEL"};
+    const char *descs[3] = {
+        "Auto-repair pod\nRestores HP or\nboosts shield",
+        "Burst offense pod\nFires homing\nrocket salvos",
+        "Defense pod\nEMP destroys\nnearby bullets"
+    };
+    const char *stats[3] = {
+        "CD: 35s   HP: 5",
+        "CD: 18s   HP: 4",
+        "CD: 15s   HP: 3"
+    };
+    Color cardColors[3] = {
+        {25, 80, 45, 200},
+        {100, 50, 15, 200},
+        {25, 60, 110, 200}
+    };
+    Color borderColors[3] = {
+        {80, 255, 120, 255},
+        {255, 160, 40, 255},
+        {100, 180, 255, 255}
+    };
+
+    float t = (float)GetTime();
+    for (int i = 0; i < 3; i++)
+    {
+        float cx = SW / 2 + (i - 1) * 280;
+        bool sel = i == G.podSel;
+        bool hov = CheckCollisionPointRec(mouse, (Rectangle){cx - 110, 160, 220, 380});
+        Color bc = sel ? cardColors[i] : (hov ? (Color){30, 45, 80, 200} : (Color){20, 30, 50, 180});
+        Rectangle card = {cx - 110, 160, 220, 380};
+        DrawRectangleRounded(card, 0.1f, 8, bc);
+        if (sel)
+            DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, borderColors[i]);
+        else if (hov)
+            DrawRectangleRoundedLinesEx(card, 0.1f, 8, 2, (Color){80, 130, 200, 200});
+        else
+            DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
+
+        /* Pod icon */
+        DrawPodIcon((Vector2){cx, 280}, i, t);
+
+        int nw = MeasureText(names[i], 22);
+        DrawText(names[i], (int)(cx - nw / 2), 340, 22, WHITE);
+        DrawText(stats[i], (int)(cx - MeasureText(stats[i], 13) / 2), 375, 13, LIGHTGRAY);
+        DrawText(descs[i], (int)(cx - 90), 405, 14, (Color){180, 200, 220, 255});
+        if (sel)
+        {
+            DrawText("[ SELECTED ]", (int)(cx - MeasureText("[ SELECTED ]", 18) / 2), 500, 18, GOLD);
         }
     }
 
@@ -1026,8 +1201,8 @@ void ScreenDifficultySelect(float dt)
     }
     if (IsKeyPressed(KEY_ESCAPE))
     {
-        G.screen = SCREEN_WEAPON_SELECT;
-        G.prevWeaponSel = -1;
+        G.screen = SCREEN_SUBSHIP_SELECT;
+        G.prevPodSel = -1;
     }
 
     BeginDrawing();

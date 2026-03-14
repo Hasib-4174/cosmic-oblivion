@@ -10,6 +10,7 @@
 #include "include/game.h"
 #include "include/ui.h"
 #include "include/campaign.h"
+#include "include/subship.h"
 #include <string.h>
 
 GameState G;
@@ -70,6 +71,7 @@ int main(void)
     G.prevAudioSel = -1;
     G.prevShipSel = -1;
     G.prevWeaponSel = -1;
+    G.prevPodSel = -1;
 
     G.screen = SCREEN_LOGO;
     G.highscore = LoadHS();
@@ -141,6 +143,9 @@ int main(void)
             break;
         case SCREEN_WEAPON_SELECT:
             ScreenWeaponSelect(dt);
+            break;
+        case SCREEN_SUBSHIP_SELECT:
+            ScreenSubShipSelect(dt);
             break;
         case SCREEN_GAMEPLAY:
             if (IsKeyPressed(KEY_ESCAPE))
