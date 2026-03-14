@@ -13,6 +13,7 @@
 #include "include/collision.h"
 #include "include/weapon.h"
 #include "include/campaign.h"
+#include "include/subship.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -214,6 +215,7 @@ void InitGame(void)
     G.gameOver = false;
     G.playerShieldActive = false;
     G.playerShieldDuration = 0;
+    G.fabShieldActive = false;
     G.enginePlaying = false;
     G.energy = 100.0f;
     G.maxEnergy = 100.0f;
@@ -221,6 +223,7 @@ void InitGame(void)
     G.isFiring = false;
     InitPlayer();
     InitWeaponProjs();
+    InitSubShip();
 }
 
 void UpdateGame(float dt)
@@ -298,14 +301,22 @@ void UpdateGame(float dt)
             G.comboMultiplier = 1.0f;
     }
 
-    /* Shield duration countdown */
+    /* Shield duration countdown — skip if Fabricator pod keeps it permanent */
     if (G.playerShieldActive)
     {
-        G.playerShieldDuration -= dt;
-        if (G.playerShieldDuration <= 0)
+        if (G.fabShieldActive)
         {
-            G.playerShieldActive = false;
-            G.playerShieldDuration = 0;
+            /* Fabricator keeps shield topped up permanently */
+            G.playerShieldDuration = 999.0f;
+        }
+        else
+        {
+            G.playerShieldDuration -= dt;
+            if (G.playerShieldDuration <= 0)
+            {
+                G.playerShieldActive = false;
+                G.playerShieldDuration = 0;
+            }
         }
     }
 
@@ -641,7 +652,7 @@ void UpdateGame(float dt)
         }
     }
 
-    /* Enemy bullets hit player */
+    /* Enemy bullets hit player — when shield NOT active */
     if (pl->alive && pl->shieldTimer <= 0 && !G.playerShieldActive)
     {
         for (int bi = 0; bi < MAX_BULLETS; bi++)
@@ -688,6 +699,32 @@ void UpdateGame(float dt)
                     G.goBtns[1] = MkBtn(SW / 2 - 100, 540, 200, 48, "MAIN MENU");
                     G.goSel = 0;
                 }
+            }
+        }
+    }
+    /* Enemy bullets hit player — when shield IS active, absorb but break fab shield */
+    else if (pl->alive && G.playerShieldActive)
+    {
+        for (int bi = 0; bi < MAX_BULLETS; bi++)
+        {
+            if (!G.bullets[bi].active || !G.bullets[bi].isEnemy)
+                continue;
+            if (CheckCircleShipCollision(G.bullets[bi].pos, 5.0f, GetShipHitbox(pl->pos, pl->type, true)))
+            {
+                G.bullets[bi].active = false;
+                SpawnP(pl->pos, (Color){100, 200, 255, 255}, 10, 120, 2);
+                /* Break Fabricator shield on hit */
+                if (G.fabShieldActive)
+                {
+                    G.fabShieldActive = false;
+                    G.playerShieldActive = false;
+                    G.playerShieldDuration = 0;
+                    pl->shieldTimer = 0.5f;
+                    G.shakeTimer = 0.2f;
+                    G.shakeMag = 5;
+                    SpawnP(pl->pos, (Color){100, 200, 255, 255}, 20, 200, 3);
+                }
+                break;
             }
         }
     }
@@ -747,7 +784,7 @@ void UpdateGame(float dt)
             }
         }
     }
-    /* Shield-active: destroy meteors on contact instead */
+    /* Shield-active: destroy meteors on contact but break fab shield */
     else if (pl->alive && G.playerShieldActive)
     {
         for (int mi = 0; mi < MAX_METEORS; mi++)
@@ -761,6 +798,17 @@ void UpdateGame(float dt)
                 SpawnP(G.meteors[mi].pos, (Color){100, 200, 255, 255}, 12, 150, 3);
                 G.shakeTimer = 0.15f;
                 G.shakeMag = 4;
+                /* Break Fabricator shield on meteor hit */
+                if (G.fabShieldActive)
+                {
+                    G.fabShieldActive = false;
+                    G.playerShieldActive = false;
+                    G.playerShieldDuration = 0;
+                    pl->shieldTimer = 0.5f;
+                    G.shakeTimer = 0.25f;
+                    G.shakeMag = 6;
+                    SpawnP(pl->pos, (Color){100, 200, 255, 255}, 20, 200, 3);
+                }
             }
         }
     }
@@ -838,6 +886,7 @@ void UpdateGame(float dt)
     
     UpdateWeaponProjs(dt);
     CheckWeaponCollisions();
+    UpdateSubShips(dt);
     UpdateParticles(dt);
 
     if (G.isCampaignMode)
@@ -1079,6 +1128,7 @@ void DrawGameplay(void)
         }
     }
     DrawWeaponEffects();
+    DrawSubShips();
     if (G.player.alive)
     {
         if (G.player.damageFlash > 0)
@@ -1138,6 +1188,7 @@ void DrawGameplay(void)
     }
     DrawHPBar(G.player);
     DrawEnergyBar();
+    DrawSubShipHUD();
 
     if (G.isCampaignMode)
     {
