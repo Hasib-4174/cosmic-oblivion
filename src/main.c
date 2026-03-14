@@ -144,9 +144,6 @@ int main(void)
         case SCREEN_WEAPON_SELECT:
             ScreenWeaponSelect(dt);
             break;
-        case SCREEN_SUBSHIP_SELECT:
-            ScreenSubShipSelect(dt);
-            break;
         case SCREEN_GAMEPLAY:
             if (IsKeyPressed(KEY_ESCAPE))
             {

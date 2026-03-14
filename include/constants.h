@@ -29,7 +29,6 @@ typedef enum
     SCREEN_LEVEL_COMPLETE,
     SCREEN_SHIP_SELECT,
     SCREEN_WEAPON_SELECT,
-    SCREEN_SUBSHIP_SELECT,
     SCREEN_GAMEPLAY,
     SCREEN_PAUSE,
     SCREEN_GAME_OVER,
@@ -245,6 +244,7 @@ struct GameState
     SubShipRocket podRockets[MAX_SUBSHIP_ROCKETS];
     float empPulseTimer;
     Vector2 empPulsePos;
+    bool fabShieldActive; /* Fabricator pod permanent shield tracking */
     int menuSel, pauseSel, goSel, shipSel, weaponSel, podSel, optSel, audioSel, diffSel;
     bool gameOver;
 
