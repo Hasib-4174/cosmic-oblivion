@@ -9,6 +9,7 @@
 #include "include/game.h"
 #include "include/campaign.h"
 #include <math.h>
+#include <string.h>
 
 extern GameState G;
 
@@ -1244,10 +1245,13 @@ void ScreenLevelSelect(float dt)
                 else if (G.actSel == 1) G.difficulty = DIFF_NORMAL;
                 else G.difficulty = DIFF_HARD;
 
-                /* If it's the first level of an act, show narrative */
-                if (G.levelSel == 0)
+                /* Trigger narrative for act start OR boss levels */
+                if (G.levelSel == 0 || G.levelSel == 9)
                 {
                     G.screen = SCREEN_NARRATIVE;
+                    G.campaignState.narrativeBeat = 0;
+                    G.campaignState.narrativeTimer = 0;
+                    G.campaignState.isBossNarrative = (G.levelSel == 9);
                     G.narBtns[0] = MkBtn(SW/2 - 100, SH - 100, 200, 50, "CONTINUE");
                 }
                 else
@@ -1395,30 +1399,106 @@ void ScreenLevelSelect(float dt)
 void ScreenNarrative(float dt)
 {
     UpdateStars(dt);
-    UpdateBtn(&G.narBtns[0], dt);
     
-    bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE) || (G.narBtns[0].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+    int actIdx = G.campaignState.currentLevel / 10;
+    ActData act = GetActData(actIdx);
+    int beatIdx = G.campaignState.narrativeBeat;
+    int maxBeats = G.campaignState.isBossNarrative ? act.bossBeatCount : act.beatCount;
     
-    if (enter)
+    if (beatIdx >= maxBeats)
     {
-        if (G.audioEnabled) { SetSoundVolume(G.sfxButtonSelect, G.uiVolume); PlaySound(G.sfxButtonSelect); }
+        /* Finished all beats */
         G.screen = SCREEN_SHIP_SELECT;
         G.shipSel = G.selectedShip;
         G.prevShipSel = -1;
+        return;
+    }
+    
+    StoryBeat beat = G.campaignState.isBossNarrative ? act.bossBeats[beatIdx] : act.beats[beatIdx];
+    
+    /* Update typewriter */
+    G.campaignState.narrativeTimer += dt * 30.0f; /* 30 chars per second */
+    int charCount = (int)G.campaignState.narrativeTimer;
+    int len = (int)strlen(beat.text);
+    if (charCount > len) charCount = len;
+    
+    UpdateBtn(&G.narBtns[0], dt);
+    
+    bool next = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || (G.narBtns[0].hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT));
+    
+    if (next)
+    {
+        if (charCount < len)
+        {
+            /* Skip typewriter */
+            G.campaignState.narrativeTimer = (float)len;
+        }
+        else
+        {
+            /* Move to next beat */
+            if (G.audioEnabled) { SetSoundVolume(G.sfxButtonSelect, G.uiVolume); PlaySound(G.sfxButtonSelect); }
+            G.campaignState.narrativeBeat++;
+            G.campaignState.narrativeTimer = 0;
+            
+            if (G.campaignState.narrativeBeat >= maxBeats)
+            {
+                G.screen = SCREEN_SHIP_SELECT;
+                G.shipSel = G.selectedShip;
+                G.prevShipSel = -1;
+            }
+        }
     }
 
     BeginDrawing();
     ClearBackground((Color){4, 4, 16, 255});
+    DrawNebula();
     DrawStars();
     
-    int actIdx = G.campaignState.currentLevel / 10;
-    ActData act = GetActData(actIdx);
+    /* Draw Comms UI */
+    float pad = 60.0f;
+    Rectangle frame = {pad, SH - 280, SW - pad * 2, 220};
+    DrawRectangleRounded(frame, 0.1f, 8, CAlpha(DARKBLUE, 100));
+    DrawRectangleRoundedLinesEx(frame, 0.1f, 8, 2.0f, SKYBLUE);
     
-    DrawText(act.actName, (SW - MeasureText(act.actName, 40)) / 2, 120, 40, GOLD);
-    DrawText(act.loreText, (SW - MeasureText(act.loreText, 20)) / 2, 250, 20, WHITE);
+    /* Scanline effect in frame */
+    for (int i = 0; i < (int)frame.height; i += 4)
+    {
+        DrawLine((int)frame.x, (int)(frame.y + i), (int)(frame.x + frame.width), (int)(frame.y + i), CAlpha(SKYBLUE, 20));
+    }
+
+    /* Portrait Area */
+    Rectangle portRect = {frame.x + 20, frame.y + 20, 180, 180};
+    DrawRectangleRec(portRect, (Color){10, 20, 40, 255});
+    DrawRectangleLinesEx(portRect, 2.0f, (Color){40, 80, 120, 255});
     
-    DrawBtn(G.narBtns[0], G.narBtns[0].hovered);
+    /* Draw Character Portrait */
+    Vector2 portCenter = {portRect.x + portRect.width / 2, portRect.y + portRect.height / 2};
     
+    /* Internal static call */
+    void DrawCharacterPortrait(Vector2 center, StoryPortrait p);
+    DrawCharacterPortrait(portCenter, beat.portrait);
+
+    /* Name and Text */
+    DrawText(beat.name, (int)frame.x + 220, (int)frame.y + 30, 24, GOLD);
+    
+    char visibleText[512];
+    strncpy(visibleText, beat.text, charCount);
+    visibleText[charCount] = '\0';
+    
+    /* Wrap text manually or use DrawTextRec if available in raylib version */
+    /* For now, simple DrawText with a bit of wrapping logic if needed, but let's stick to simple for now */
+    DrawText(visibleText, (int)frame.x + 220, (int)frame.y + 70, 20, WHITE);
+    
+    /* Prompt to continue */
+    if (charCount >= len)
+    {
+        float pulse = 0.5f + 0.5f * sinf((float)GetTime() * 5.0f);
+        DrawText("PRESS ENTER TO CONTINUE", (int)frame.x + (int)frame.width - 250, (int)frame.y + (int)frame.height - 30, 16, CAlpha(SKYBLUE, (unsigned char)(200 * pulse)));
+    }
+    
+    /* Act Title centered at top */
+    DrawText(act.actName, (SW - MeasureText(act.actName, 32)) / 2, 50, 32, CAlpha(GOLD, 180));
+
     EndDrawing();
 }
 
@@ -1502,3 +1582,66 @@ void ScreenLevelComplete(float dt)
     EndDrawing();
 }
 
+void DrawCharacterPortrait(Vector2 center, StoryPortrait p)
+{
+    float t = (float)GetTime();
+    
+    if (p == PORTRAIT_NONE) return;
+
+    if (p == PORTRAIT_VANCE)
+    {
+        /* Commander Vance - Stern, tactical */
+        /* Face Shape */
+        DrawRectangleV((Vector2){center.x - 40, center.y - 50}, (Vector2){80, 100}, (Color){60, 60, 70, 255});
+        DrawRectangleLinesEx((Rectangle){center.x - 40, center.y - 50, 80, 100}, 2, DARKGRAY);
+        
+        /* Visor/Eyes */
+        DrawRectangleV((Vector2){center.x - 35, center.y - 25}, (Vector2){70, 15}, (Color){20, 20, 30, 255});
+        DrawRectangleV((Vector2){center.x - 30, center.y - 22}, (Vector2){60, 8}, (Color){0, 120, 255, 200});
+        
+        /* Helmet details */
+        DrawRectangleV((Vector2){center.x - 45, center.y - 60}, (Vector2){90, 20}, (Color){40, 40, 50, 255});
+        DrawRectangleV((Vector2){center.x - 10, center.y - 70}, (Vector2){20, 15}, GOLD);
+    }
+    else if (p == PORTRAIT_KAEL)
+    {
+        /* Operator Kael - Technical, helpful */
+        /* Face Shape */
+        DrawCircleV(center, 50, (Color){50, 70, 90, 255});
+        DrawCircleLines((int)center.x, (int)center.y, 50, SKYBLUE);
+        
+        /* Virtual Interface/Eyes */
+        float scan = sinf(t * 3.0f) * 10.0f;
+        DrawRectangleV((Vector2){center.x - 40, center.y - 15 + scan}, (Vector2){80, 2}, CAlpha(SKYBLUE, 150));
+        DrawCircleV((Vector2){center.x - 20, center.y - 10}, 8, (Color){10, 20, 40, 255});
+        DrawCircleV((Vector2){center.x + 20, center.y - 10}, 8, (Color){10, 20, 40, 255});
+        DrawCircleV((Vector2){center.x - 20, center.y - 10}, 4, SKYBLUE);
+        DrawCircleV((Vector2){center.x + 20, center.y - 10}, 4, SKYBLUE);
+        
+        /* Headset */
+        DrawRectangleV((Vector2){center.x - 55, center.y - 20}, (Vector2){10, 40}, DARKGRAY);
+        DrawLineEx((Vector2){center.x - 55, center.y}, (Vector2){center.x - 10, center.y + 30}, 2.0f, GRAY);
+    }
+    else if (p == PORTRAIT_ENEMY)
+    {
+        /* Unknown Enemy - Sinister, distorted */
+        /* Glitchy silhouette */
+        for (int i = 0; i < 5; i++)
+        {
+            float offX = Rf(-5.0f, 5.0f);
+            float offY = Rf(-5.0f, 5.0f);
+            DrawRectangleV((Vector2){center.x - 40 + offX, center.y - 60 + offY}, (Vector2){80, 120}, CAlpha(BLACK, 180));
+        }
+        
+        /* Piercing red eyes */
+        float flicker = 0.5f + 0.5f * sinf(t * 20.0f);
+        DrawCircleV((Vector2){center.x - 25, center.y - 20}, 6, CAlpha(RED, (unsigned char)(255 * flicker)));
+        DrawCircleV((Vector2){center.x + 25, center.y - 20}, 6, CAlpha(RED, (unsigned char)(255 * flicker)));
+        
+        /* Static effect */
+        for (int i = 0; i < 20; i++)
+        {
+            DrawPixel((int)(center.x + Rf(-40, 40)), (int)(center.y + Rf(-60, 60)), CAlpha(PURPLE, 100));
+        }
+    }
+}

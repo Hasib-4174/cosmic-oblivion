@@ -28,11 +28,29 @@ typedef struct
 
 } LevelData;
 
+typedef enum
+{
+    PORTRAIT_VANCE,    /* Commander Vance - Stern, tactical */
+    PORTRAIT_KAEL,     /* Operator Kael - Technical, helpful */
+    PORTRAIT_ENEMY,    /* Unknown Enemy - Sinister, distorted */
+    PORTRAIT_NONE
+} StoryPortrait;
+
+typedef struct
+{
+    const char *name;
+    const char *text;
+    StoryPortrait portrait;
+} StoryBeat;
+
 typedef struct
 {
     int index;
-    const char *loreText;
     const char *actName;
+    int beatCount;
+    StoryBeat beats[5];
+    int bossBeatCount;
+    StoryBeat bossBeats[5];
 } ActData;
 
 /* Global Campaign Functions */
