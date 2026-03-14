@@ -12,9 +12,36 @@ static ActData s_acts[3];
 void InitCampaign(void)
 {
     /* Initialize Acts */
-    s_acts[0] = (ActData){0, "The invasion begins in the outer rim...", "Act I: The Fringe"};
-    s_acts[1] = (ActData){1, "We push deeper into enemy territory...", "Act II: The Core Worlds"};
-    s_acts[2] = (ActData){2, "The final stand against the Titan fleet...", "Act III: Oblivion"};
+    s_acts[0].index = 0;
+    s_acts[0].actName = "ACT I: THE FRINGE";
+    s_acts[0].beatCount = 3;
+    s_acts[0].beats[0] = (StoryBeat){"Operator Kael", "Commander, the Fringe sensors are picking up massive energy signatures.", PORTRAIT_KAEL};
+    s_acts[0].beats[1] = (StoryBeat){"Commander Vance", "Is it the Titan fleet? I thought they were still in the Core.", PORTRAIT_VANCE};
+    s_acts[0].beats[2] = (StoryBeat){"Operator Kael", "Negative. These signals are ancient... and aggressive. Prepare for contact.", PORTRAIT_KAEL};
+    s_acts[0].bossBeatCount = 2;
+    s_acts[0].bossBeats[0] = (StoryBeat){"Commander Vance", "There's the sector commander. Absolute unit.", PORTRAIT_VANCE};
+    s_acts[0].bossBeats[1] = (StoryBeat){"Operator Kael", "It's jamming our long-range comms. We're on our own. Take it down!", PORTRAIT_KAEL};
+
+    s_acts[1].index = 1;
+    s_acts[1].actName = "ACT II: THE CORE WORLDS";
+    s_acts[1].beatCount = 3;
+    s_acts[1].beats[0] = (StoryBeat){"Commander Vance", "We've pushed them back, but they're regrouping at the Core.", PORTRAIT_VANCE};
+    s_acts[1].beats[1] = (StoryBeat){"Operator Kael", "They've bypassed our outer defenses. The civilian colonies are in the line of fire.", PORTRAIT_KAEL};
+    s_acts[1].beats[2] = (StoryBeat){"Commander Vance", "Then we have no choice. Full burn to the Core. We end this now.", PORTRAIT_VANCE};
+    s_acts[1].bossBeatCount = 2;
+    s_acts[1].bossBeats[0] = (StoryBeat){"Operator Kael", "Massive signature confirmed. It's a Core-class Destroyer.", PORTRAIT_KAEL};
+    s_acts[1].bossBeats[1] = (StoryBeat){"Commander Vance", "Colony defense depends on us. Engage!", PORTRAIT_VANCE};
+
+    s_acts[2].index = 2;
+    s_acts[2].actName = "ACT III: OBLIVION";
+    s_acts[2].beatCount = 4;
+    s_acts[2].beats[0] = (StoryBeat){"Operator Kael", "Commander... the energy readings are off the charts. Something is tearing reality apart.", PORTRAIT_KAEL};
+    s_acts[2].beats[1] = (StoryBeat){"Commander Vance", "The Oblivion Gate. They're actually doing it.", PORTRAIT_VANCE};
+    s_acts[2].beats[2] = (StoryBeat){"Unknown Signal", "YOUR EXISTENCE IS A CALCULATION ERROR. WE ARE THE CORRECTION.", PORTRAIT_ENEMY};
+    s_acts[2].beats[3] = (StoryBeat){"Commander Vance", "Kael, lock my stabilizers. If we're going into the void, we're going in hot.", PORTRAIT_VANCE};
+    s_acts[2].bossBeatCount = 2;
+    s_acts[2].bossBeats[0] = (StoryBeat){"Unknown Signal", "THE VOID IS HUNGRY. FEED IT YOUR SPARK.", PORTRAIT_ENEMY};
+    s_acts[2].bossBeats[1] = (StoryBeat){"Commander Vance", "Stay with me, Kael. We're showing this 'correction' what humanity is made of!", PORTRAIT_VANCE};
 
     /* Generate dummy data for 30 levels for now */
     for (int i = 0; i < 30; i++)

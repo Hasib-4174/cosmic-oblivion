@@ -80,6 +80,11 @@ typedef struct
     bool bossDefeated;
     bool isTransitioning;
     float levelCompleteTimer;
+    
+    /* Narrative/Lore State */
+    int narrativeBeat;
+    float narrativeTimer;
+    bool isBossNarrative;
 } CampaignState;
 
 typedef struct
