@@ -16,6 +16,7 @@ extern int SH;
 #define MAX_ENEMIES 8
 #define MAX_FLOATING_TEXT 16
 #define MAX_EXPLOSION_VARIANTS 2
+#define MAX_SUBSHIP_ROCKETS 8
 #define HIGHSCORE_FILE "highscore.txt"
 
 typedef enum
@@ -57,6 +58,12 @@ typedef enum
     WEAPON_SINGULARITY,
     WEAPON_WAVE
 } WeaponType;
+typedef enum
+{
+    POD_FABRICATOR,
+    POD_SALVO,
+    POD_SENTINEL
+} PodType;
 typedef enum
 {
     DIFF_EASY,
@@ -170,6 +177,30 @@ typedef struct
 
 typedef struct
 {
+    PodType type;
+    Vector2 pos, vel;
+    float cooldown;
+    float cooldownTimer;
+    float health, maxHealth;
+    bool active;
+    bool repairing;
+    float repairTimer;
+    float animationTimer;
+    float chargeProgress;
+    float formationAngle;
+} SubShip;
+
+typedef struct
+{
+    Vector2 pos, vel;
+    float life;
+    int targetIdx;  /* index into enemies or meteors (-1=none) */
+    bool targetIsEnemy;
+    bool active;
+} SubShipRocket;
+
+typedef struct
+{
     Vector2 pos, vel;
     float speed, fireRate, fireCooldown;
     int hp, maxHp;
@@ -207,8 +238,14 @@ struct GameState
     float logoTimer, slowMoTimer;
     ShipType selectedShip;
     WeaponType selectedWeapon;
+    PodType selectedPod;
     WeaponProj weaponProjs[MAX_BULLETS];
-    int menuSel, pauseSel, goSel, shipSel, weaponSel, optSel, audioSel, diffSel;
+    SubShip pod;
+    SubShipRocket podRockets[MAX_SUBSHIP_ROCKETS];
+    float empPulseTimer;
+    Vector2 empPulsePos;
+    bool fabShieldActive; /* Fabricator pod permanent shield tracking */
+    int menuSel, pauseSel, goSel, shipSel, weaponSel, podSel, optSel, audioSel, diffSel;
     bool gameOver;
 
     /* Audio volumes (3 categories) */
@@ -281,7 +318,7 @@ struct GameState
     Sound sfxWaveBeam;
 
     /* Previous selection trackers (for button hover sound deduplication) */
-    int prevMenuSel, prevPauseSel, prevGoSel, prevOptSel, prevAudioSel, prevShipSel, prevWeaponSel;
+    int prevMenuSel, prevPauseSel, prevGoSel, prevOptSel, prevAudioSel, prevShipSel, prevWeaponSel, prevPodSel;
 
     /* Shield pickup system */
     bool playerShieldActive;

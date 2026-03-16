@@ -8,6 +8,7 @@
 #include "include/meteor.h"
 #include "include/game.h"
 #include "include/campaign.h"
+#include "include/subship.h"
 #include <math.h>
 #include <string.h>
 
@@ -248,32 +249,53 @@ void ScreenMenu(float dt)
     DrawAudioToggle();
     EndDrawing();
 }
+
+/* Forward declaration — defined below ScreenWeaponSelect */
+static void DrawPodIcon(Vector2 c, int podType, float t);
+
 void ScreenShipSelect(float dt)
 {
     UpdateStars(dt);
-    int oldSel = G.shipSel;
-    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
-        G.shipSel = (G.shipSel + 2) % 3;
-    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
-        G.shipSel = (G.shipSel + 1) % 3;
 
-    /* Mouse hover on ship cards */
+    int oldShipSel = G.shipSel;
+    int oldPodSel = G.podSel;
+    static int focusRow = 0; /* 0 = ships, 1 = pods */
+
+    if (IsKeyPressed(KEY_TAB) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
+        IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S))
+        focusRow = 1 - focusRow;
+
+    if (focusRow == 0)
+    {
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+            G.shipSel = (G.shipSel + 2) % 3;
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+            G.shipSel = (G.shipSel + 1) % 3;
+    }
+    else
+    {
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+            G.podSel = (G.podSel + 2) % 3;
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+            G.podSel = (G.podSel + 1) % 3;
+    }
+
     Vector2 mouse = GetMousePosition();
     for (int i = 0; i < 3; i++)
     {
-        float cx = SW / 2 + (i - 1) * 280.0f;
-        Rectangle card = {cx - 110, 160, 220, 380};
+        float cx = SW / 2 + (i - 1) * 250.0f;
+        Rectangle card = {cx - 100, 90, 200, 290};
         if (CheckCollisionPointRec(mouse, card))
         {
+            focusRow = 0;
             int reqLevel = (i == 1) ? 3 : (i == 2) ? 10 : 0;
             bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
-            
-            if (G.shipSel != i)
-                G.shipSel = i;
+            if (G.shipSel != i) G.shipSel = i;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !locked)
             {
                 PlayBtnSelect();
                 G.selectedShip = G.shipSel;
+                G.selectedPod = (PodType)G.podSel;
                 G.screen = SCREEN_WEAPON_SELECT;
                 G.weaponSel = 0;
                 G.prevWeaponSel = -1;
@@ -281,12 +303,40 @@ void ScreenShipSelect(float dt)
         }
     }
 
-    /* Play hover sound on ship change */
-    if (G.shipSel != oldSel)
+    for (int i = 0; i < 3; i++)
     {
-        if (G.prevShipSel >= 0)
-            PlayBtnHover();
+        float cx = SW / 2 + (i - 1) * 220.0f;
+        Rectangle card = {cx - 85, 420, 170, 180};
+        if (CheckCollisionPointRec(mouse, card))
+        {
+            focusRow = 1;
+            if (G.podSel != i) G.podSel = i;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                int reqLevel = (G.shipSel == 1) ? 3 : (G.shipSel == 2) ? 10 : 0;
+                bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
+                if (!locked)
+                {
+                    PlayBtnSelect();
+                    G.selectedShip = G.shipSel;
+                    G.selectedPod = (PodType)G.podSel;
+                    G.screen = SCREEN_WEAPON_SELECT;
+                    G.weaponSel = 0;
+                    G.prevWeaponSel = -1;
+                }
+            }
+        }
+    }
+
+    if (G.shipSel != oldShipSel)
+    {
+        if (G.prevShipSel >= 0) PlayBtnHover();
         G.prevShipSel = G.shipSel;
+    }
+    if (G.podSel != oldPodSel)
+    {
+        if (G.prevPodSel >= 0) PlayBtnHover();
+        G.prevPodSel = G.podSel;
     }
 
     if (IsKeyPressed(KEY_ENTER))
@@ -297,6 +347,7 @@ void ScreenShipSelect(float dt)
         {
             PlayBtnSelect();
             G.selectedShip = G.shipSel;
+            G.selectedPod = (PodType)G.podSel;
             G.screen = SCREEN_WEAPON_SELECT;
             G.weaponSel = 0;
             G.prevWeaponSel = -1;
@@ -307,57 +358,101 @@ void ScreenShipSelect(float dt)
         G.screen = SCREEN_MAIN_MENU;
         G.prevMenuSel = -1;
     }
+
+    /* ==================== DRAWING ==================== */
     BeginDrawing();
     ClearBackground((Color){4, 4, 16, 255});
     DrawNebula();
     DrawStars();
-    DrawText("SELECT YOUR SHIP", (SW - MeasureText("SELECT YOUR SHIP", 36)) / 2, 40, 36, WHITE);
-    const char *names[3] = {"INTERCEPTOR", "DESTROYER", "TITAN"};
-    const char *descs[3] = {"Fast & Agile\nHP: 3  Fire: Fast", "Balanced Fighter\nHP: 5  Fire: Med", "Heavy Tank\nHP: 8  Fire: Slow"};
-    const char *stats[3] = {"SPD: *****  FIR: *****  HP: **", "SPD: ***  FIR: ***  HP: ****", "SPD: **  FIR: **  HP: ******"};
+    DrawText("SELECT YOUR SHIP", (SW - MeasureText("SELECT YOUR SHIP", 30)) / 2, 18, 30, WHITE);
+    DrawText("& AUX POD", (SW - MeasureText("& AUX POD", 20)) / 2, 52, 20, (Color){160, 200, 255, 255});
+
+    const char *shipNames[3] = {"INTERCEPTOR", "DESTROYER", "TITAN"};
+    const char *shipDescs[3] = {"Fast & Agile\nHP: 3  Fire: Fast", "Balanced Fighter\nHP: 5  Fire: Med", "Heavy Tank\nHP: 8  Fire: Slow"};
+    const char *shipStats[3] = {"SPD:*****  FIR:*****  HP:**", "SPD:***  FIR:***  HP:****", "SPD:**  FIR:**  HP:******"};
     float t = (float)GetTime();
     for (int i = 0; i < 3; i++)
     {
-        float cx = SW / 2 + (i - 1) * 280;
+        float cx = SW / 2 + (i - 1) * 250;
         bool sel = i == G.shipSel;
-        bool hov = CheckCollisionPointRec(mouse, (Rectangle){cx - 110, 160, 220, 380});
+        bool hov = CheckCollisionPointRec(mouse, (Rectangle){cx - 100, 90, 200, 290});
         Color bc = sel ? (Color){40, 80, 180, 200} : (hov ? (Color){30, 55, 110, 200} : (Color){20, 30, 50, 180});
-        Rectangle card = {cx - 110, 160, 220, 380};
+        Rectangle card = {cx - 100, 90, 200, 290};
         DrawRectangleRounded(card, 0.1f, 8, bc);
-        if (sel)
+        if (sel && focusRow == 0)
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 3, (Color){100, 180, 255, 255});
+        else if (sel)
+            DrawRectangleRoundedLinesEx(card, 0.1f, 8, 2, (Color){80, 150, 230, 200});
         else if (hov)
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 2, (Color){80, 130, 200, 200});
         else
             DrawRectangleRoundedLinesEx(card, 0.1f, 8, 1, (Color){60, 80, 120, 200});
-            
+
         int reqLevel = (i == 1) ? 3 : (i == 2) ? 10 : 0;
         bool locked = GetMaxUnlockedLevel(&G) < reqLevel;
-        
+
         if (locked)
         {
-            DrawText("LOCKED", (int)(cx - MeasureText("LOCKED", 22) / 2), 300, 22, RED);
+            DrawText("LOCKED", (int)(cx - MeasureText("LOCKED", 20) / 2), 200, 20, RED);
             const char *msg = TextFormat("Reach Sector %d-%d", (reqLevel / 10) + 1, (reqLevel % 10) + 1);
             if (reqLevel == 10) msg = "Clear Act I";
-            DrawText(msg, (int)(cx - MeasureText(msg, 16) / 2), 340, 16, GRAY);
-            DrawText("???", (int)(cx - MeasureText("???", 22) / 2), 400, 22, DARKGRAY);
+            DrawText(msg, (int)(cx - MeasureText(msg, 14) / 2), 230, 14, GRAY);
             if (sel)
-                DrawText("[ LOCKED ]", (int)(cx - MeasureText("[ LOCKED ]", 18) / 2), 520, 18, RED);
+                DrawText("[ LOCKED ]", (int)(cx - MeasureText("[ LOCKED ]", 14) / 2), 350, 14, RED);
         }
         else
         {
-            DrawShipShape((Vector2){cx, 300}, (ShipType)i, t * 3 + i, true);
-            int nw = MeasureText(names[i], 22);
-            DrawText(names[i], (int)(cx - nw / 2), 400, 22, WHITE);
-            DrawText(stats[i], (int)(cx - 100), 435, 13, LIGHTGRAY);
-            DrawText(descs[i], (int)(cx - 90), 460, 14, (Color){180, 200, 220, 255});
-            if (sel)
-            {
-                DrawText("[ SELECTED ]", (int)(cx - MeasureText("[ SELECTED ]", 18) / 2), 520, 18, GOLD);
-            }
+            DrawShipShape((Vector2){cx, 200}, (ShipType)i, t * 3 + i, true);
+            int nw = MeasureText(shipNames[i], 18);
+            DrawText(shipNames[i], (int)(cx - nw / 2), 290, 18, WHITE);
+            DrawText(shipStats[i], (int)(cx - 90), 315, 11, LIGHTGRAY);
+            DrawText(shipDescs[i], (int)(cx - 80), 335, 12, (Color){180, 200, 220, 255});
         }
     }
-    DrawText("< A/D or Arrows  |  Click or ENTER to confirm  |  ESC to go back >", (SW - MeasureText("< A/D or Arrows  |  Click or ENTER to confirm  |  ESC to go back >", 16)) / 2, SH - 40, 16, (Color){140, 160, 180, 255});
+
+    /* --- Section divider --- */
+    DrawText("AUX POD", (SW - MeasureText("AUX POD", 18)) / 2, 395, 18, (Color){140, 170, 210, 255});
+    DrawLineEx((Vector2){SW / 2 - 180, 393}, (Vector2){SW / 2 - 50, 393}, 1, (Color){60, 80, 120, 150});
+    DrawLineEx((Vector2){SW / 2 + 50, 393}, (Vector2){SW / 2 + 180, 393}, 1, (Color){60, 80, 120, 150});
+
+    /* --- Pod cards (smaller) --- */
+    const char *podNames[3] = {"FABRICATOR", "SALVO", "SENTINEL"};
+    const char *podDescs[3] = {"Shield + repair", "Homing rockets", "EMP defense"};
+    Color podBorderColors[3] = {{80, 255, 120, 255}, {255, 160, 40, 255}, {100, 180, 255, 255}};
+    Color podCardColors[3] = {{20, 60, 35, 200}, {70, 35, 10, 200}, {20, 45, 80, 200}};
+
+    for (int i = 0; i < 3; i++)
+    {
+        float cx = SW / 2 + (i - 1) * 220;
+        bool sel = i == G.podSel;
+        bool hov = CheckCollisionPointRec(mouse, (Rectangle){cx - 85, 420, 170, 180});
+        Color bc = sel ? podCardColors[i] : (hov ? (Color){25, 40, 65, 200} : (Color){15, 22, 38, 180});
+        Rectangle card = {cx - 85, 420, 170, 180};
+        DrawRectangleRounded(card, 0.12f, 8, bc);
+        if (sel && focusRow == 1)
+            DrawRectangleRoundedLinesEx(card, 0.12f, 8, 3, podBorderColors[i]);
+        else if (sel)
+            DrawRectangleRoundedLinesEx(card, 0.12f, 8, 2, CAlpha(podBorderColors[i], 180));
+        else if (hov)
+            DrawRectangleRoundedLinesEx(card, 0.12f, 8, 2, (Color){70, 110, 170, 200});
+        else
+            DrawRectangleRoundedLinesEx(card, 0.12f, 8, 1, (Color){50, 70, 100, 200});
+
+        DrawPodIcon((Vector2){cx, 490}, i, t);
+
+        int nw = MeasureText(podNames[i], 16);
+        DrawText(podNames[i], (int)(cx - nw / 2), 530, 16, WHITE);
+        int dw = MeasureText(podDescs[i], 12);
+        DrawText(podDescs[i], (int)(cx - dw / 2), 553, 12, (Color){170, 190, 210, 255});
+        if (sel)
+        {
+            int sw2 = MeasureText("[ SELECTED ]", 12);
+            DrawText("[ SELECTED ]", (int)(cx - sw2 / 2), 575, 12, GOLD);
+        }
+    }
+
+    const char *hint = "< Arrows/WASD to select  |  TAB to switch rows  |  ENTER confirm  |  ESC back >";
+    DrawText(hint, (SW - MeasureText(hint, 14)) / 2, SH - 30, 14, (Color){140, 160, 180, 255});
     DrawAudioToggle();
     EndDrawing();
 }
@@ -479,8 +574,12 @@ void ScreenWeaponSelect(float dt)
                 {
                     G.screen = SCREEN_GAMEPLAY;
                     InitGame();
-                    PlayMusicStream(G.bgmGameplay);
-                    SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+                    StopMusicStream(G.bgmMenu);
+                    if (G.audioEnabled)
+                    {
+                        PlayMusicStream(G.bgmGameplay);
+                        SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+                    }
                 }
                 else
                 {
@@ -510,13 +609,17 @@ void ScreenWeaponSelect(float dt)
             {
                 G.screen = SCREEN_GAMEPLAY;
                 InitGame();
-                PlayMusicStream(G.bgmGameplay);
-                SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+                StopMusicStream(G.bgmMenu);
+                if (G.audioEnabled)
+                {
+                    PlayMusicStream(G.bgmGameplay);
+                    SetMusicVolume(G.bgmGameplay, G.bgmVolume);
+                }
             }
             else
             {
                 G.screen = SCREEN_DIFFICULTY_SELECT;
-                G.diffSel = 1; /* Default to NORMAL */
+                G.diffSel = 1;
                 G.prevDiffSel = -1;
             }
         }
@@ -605,6 +708,53 @@ void ScreenWeaponSelect(float dt)
     DrawAudioToggle();
     EndDrawing();
 }
+
+/* ---- Pod icon mini-drawing ---- */
+static void DrawPodIcon(Vector2 c, int podType, float t)
+{
+    float pulse = 0.5f + 0.5f * sinf(t * 4.0f);
+    if (podType == 0) /* FABRICATOR */
+    {
+        Color gc = (Color){80, 255, 120, 255};
+        /* Green cross / heal symbol */
+        DrawRectangle((int)c.x - 3, (int)c.y - 12, 6, 24, gc);
+        DrawRectangle((int)c.x - 12, (int)c.y - 3, 24, 6, gc);
+        DrawCircleGradient((int)c.x, (int)c.y, 18 + pulse * 6, CAlpha(gc, 40), BLANK);
+        /* Orbiting glow */
+        float a = t * 3.0f;
+        DrawCircleV((Vector2){c.x + cosf(a) * 20, c.y + sinf(a) * 20}, 3, CAlpha(gc, 180));
+        DrawCircleV((Vector2){c.x + cosf(a + 3.14f) * 20, c.y + sinf(a + 3.14f) * 20}, 3, CAlpha(gc, 180));
+    }
+    else if (podType == 1) /* SALVO */
+    {
+        Color rc = (Color){255, 160, 40, 255};
+        /* Rocket shapes */
+        for (int i = -1; i <= 1; i++)
+        {
+            float yOff = sinf(t * 5.0f + i * 1.5f) * 5.0f;
+            int rx = (int)c.x + i * 12;
+            int ry = (int)(c.y + yOff);
+            DrawTriangle((Vector2){rx, ry - 10}, (Vector2){rx + 4, ry + 6}, (Vector2){rx - 4, ry + 6}, rc);
+            DrawCircleV((Vector2){rx, ry + 8}, 3, CAlpha(ORANGE, (unsigned char)(150 + 100 * pulse)));
+        }
+        /* Exhaust glow */
+        DrawCircleGradient((int)c.x, (int)c.y + 10, 15 + pulse * 4, CAlpha(ORANGE, 40), BLANK);
+    }
+    else /* SENTINEL */
+    {
+        Color sc = (Color){100, 180, 255, 255};
+        /* EMP ring expanding */
+        float ringSize = fmodf(t * 2.0f, 1.0f);
+        DrawCircleLines((int)c.x, (int)c.y, 10 + ringSize * 20, CAlpha(sc, (unsigned char)(255 * (1.0f - ringSize))));
+        DrawCircleLines((int)c.x, (int)c.y, 10 + fmodf(t * 2.0f + 0.5f, 1.0f) * 20,
+                        CAlpha(sc, (unsigned char)(255 * (1.0f - fmodf(t * 2.0f + 0.5f, 1.0f)))));
+        /* Center core */
+        DrawCircleV(c, 8, (Color){30, 60, 100, 255});
+        DrawCircleV(c, 5 + pulse * 2, sc);
+        DrawCircleV(c, 3, WHITE);
+    }
+}
+
 
 void ScreenPause(float dt)
 {

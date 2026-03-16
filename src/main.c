@@ -10,6 +10,7 @@
 #include "include/game.h"
 #include "include/ui.h"
 #include "include/campaign.h"
+#include "include/subship.h"
 #include <string.h>
 
 GameState G;
@@ -70,6 +71,7 @@ int main(void)
     G.prevAudioSel = -1;
     G.prevShipSel = -1;
     G.prevWeaponSel = -1;
+    G.prevPodSel = -1;
 
     G.screen = SCREEN_LOGO;
     G.highscore = LoadHS();
